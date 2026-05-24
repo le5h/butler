@@ -36,6 +36,14 @@
 - [ ] Save to `config.php`
 
 ## Phase 7 – Polish
-- [ ] Error handling
-- [ ] CSP headers, XSS protection
-- [ ] Final testing, lint, commit
+- [x] Error handling
+- [x] CSP headers, XSS protection
+- [x] Final testing, lint, commit
+
+## Architecture (performance-optimized)
+- `index.php` — lean router + inline JS/API handlers (hot path)
+- `lib/storage.php` — FileStorage & SqliteStorage with `getAggregatedStats()` for SQL-level aggregation
+- `lib/geo.php` — OS detection + IP geo-lookup helpers
+- `lib/auth.php` — password auth (loaded only for view/setup)
+- `lib/view.php` — stats page with Chart.js (loaded only for ?view)
+- `lib/setup.php` — config page (loaded only for ?setup)

@@ -7,6 +7,7 @@ abstract class Storage
     abstract public function getVisits(string $range, int $page, int $perPage): array;
     abstract public function getVisitCount(string $range): int;
     abstract public function getStats(string $range): array;
+    abstract public function getAggregatedStats(string $range): array;
 }
 
 class FileStorage extends Storage
@@ -149,6 +150,68 @@ class FileStorage extends Storage
             'avg_duration' => $countDuration > 0 ? round($sumDuration / $countDuration, 2) : 0,
         ];
     }
+
+    public function getAggregatedStats(string $range): array
+    {
+        $records = $this->readRecords($range);
+
+        if ($range === 'day') {
+            $buckets = array_fill(0, 24, ['count' => 0, 'dur' => 0]);
+            foreach ($records as $r) {
+                $h = (int)date('G', $r['timestamp']);
+                $buckets[$h]['count']++;
+                if (!empty($r['duration'])) $buckets[$h]['dur'] += (float)$r['duration'];
+            }
+            $labels = $counts = $durations = [];
+            for ($h = 0; $h < 24; $h++) {
+                $labels[] = sprintf('%02d:00', $h);
+                $counts[] = $buckets[$h]['count'];
+                $durations[] = $buckets[$h]['count'] > 0 ? round($buckets[$h]['dur'] / $buckets[$h]['count'], 1) : 0;
+            }
+            return compact('labels', 'counts', 'durations');
+        }
+
+        $buckets = [];
+        foreach ($records as $r) {
+            $d = date('Y-m-d', $r['timestamp']);
+            if (!isset($buckets[$d])) $buckets[$d] = ['count' => 0, 'dur' => 0];
+            $buckets[$d]['count']++;
+            if (!empty($r['duration'])) $buckets[$d]['dur'] += (float)$r['duration'];
+        }
+
+        if ($range === 'all') {
+            ksort($buckets);
+            $labels = $counts = $durations = [];
+            foreach ($buckets as $d => $b) {
+                $labels[] = date('M j', strtotime($d));
+                $counts[] = $b['count'];
+                $durations[] = $b['count'] > 0 ? round($b['dur'] / $b['count'], 1) : 0;
+            }
+            return compact('labels', 'counts', 'durations');
+        }
+
+        $end = new DateTime();
+        $start = clone $end;
+        $days = $range === 'month' ? 29 : 6;
+        $start->modify("-{$days} days");
+
+        $labels = $counts = $durations = [];
+        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
+        foreach ($period as $d) {
+            $date = $d->format('Y-m-d');
+            $labels[] = $d->format('M j');
+            $b = $buckets[$date] ?? ['count' => 0, 'dur' => 0];
+            $counts[] = $b['count'];
+            $durations[] = $b['count'] > 0 ? round($b['dur'] / $b['count'], 1) : 0;
+        }
+        $labels[] = $end->format('M j');
+        $date = $end->format('Y-m-d');
+        $b = $buckets[$date] ?? ['count' => 0, 'dur' => 0];
+        $counts[] = $b['count'];
+        $durations[] = $b['count'] > 0 ? round($b['dur'] / $b['count'], 1) : 0;
+
+        return compact('labels', 'counts', 'durations');
+    }
 }
 
 class SqliteStorage extends Storage
@@ -239,6 +302,81 @@ class SqliteStorage extends Storage
             'total_visits' => (int)$row['total'],
             'avg_duration' => $row['avg_dur'] ? round((float)$row['avg_dur'], 2) : 0,
         ];
+    }
+
+    public function getAggregatedStats(string $range): array
+    {
+        $where = $this->rangeWhere($range);
+
+        if ($range === 'day') {
+            $sql = "SELECT CAST(strftime('%H', timestamp, 'unixepoch') AS INTEGER) as h,
+                           COUNT(*) as cnt, AVG(duration) as avg_dur
+                    FROM visits $where GROUP BY h ORDER BY h";
+        } else {
+            $sql = "SELECT strftime('%Y-%m-%d', timestamp, 'unixepoch') as d,
+                           COUNT(*) as cnt, AVG(duration) as avg_dur
+                    FROM visits $where GROUP BY d ORDER BY d";
+        }
+
+        $stmt = $this->pdo->query($sql);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        if ($range === 'day') {
+            $labels = $counts = $durations = [];
+            for ($h = 0; $h < 24; $h++) {
+                $labels[] = sprintf('%02d:00', $h);
+                $counts[] = 0;
+                $durations[] = 0;
+            }
+            foreach ($rows as $r) {
+                $h = (int)$r['h'];
+                $counts[$h] = (int)$r['cnt'];
+                $avg = $r['avg_dur'];
+                $durations[$h] = $avg ? round((float)$avg, 1) : 0;
+            }
+            return compact('labels', 'counts', 'durations');
+        }
+
+        $buckets = [];
+        foreach ($rows as $r) {
+            $buckets[$r['d']] = [
+                'count' => (int)$r['cnt'],
+                'dur' => $r['avg_dur'] ? round((float)$r['avg_dur'], 1) : 0,
+            ];
+        }
+
+        if ($range === 'all') {
+            ksort($buckets);
+            $labels = $counts = $durations = [];
+            foreach ($buckets as $d => $b) {
+                $labels[] = date('M j', strtotime($d));
+                $counts[] = $b['count'];
+                $durations[] = $b['dur'];
+            }
+            return compact('labels', 'counts', 'durations');
+        }
+
+        $end = new DateTime();
+        $start = clone $end;
+        $days = $range === 'month' ? 29 : 6;
+        $start->modify("-{$days} days");
+
+        $labels = $counts = $durations = [];
+        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
+        foreach ($period as $d) {
+            $date = $d->format('Y-m-d');
+            $labels[] = $d->format('M j');
+            $b = $buckets[$date] ?? ['count' => 0, 'dur' => 0];
+            $counts[] = $b['count'];
+            $durations[] = $b['dur'];
+        }
+        $labels[] = $end->format('M j');
+        $date = $end->format('Y-m-d');
+        $b = $buckets[$date] ?? ['count' => 0, 'dur' => 0];
+        $counts[] = $b['count'];
+        $durations[] = $b['dur'];
+
+        return compact('labels', 'counts', 'durations');
     }
 
     private function rangeWhere(string $range): string
