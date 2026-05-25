@@ -6,6 +6,7 @@ $config = array_merge([
     'password' => '', 'storage' => 'file', 'auth_secret' => '',
     'store_ip' => false, 'geo_lookup' => false,
     'collect_referrer' => true, 'collect_lang' => true, 'collect_page' => true,
+    'retention_days' => 0,
 ], $config);
 
 require_once __DIR__ . '/lib/storage.php';
@@ -15,8 +16,74 @@ $routeJs = isset($_GET['js']);
 $routeApi = isset($_GET['api']);
 $routeView = isset($_GET['view']);
 $routeSettings = isset($_GET['settings']);
+$routeLogout = isset($_GET['logout']);
+
+function getClientIp(): string
+{
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        return trim($ips[0]);
+    }
+    if (!empty($_SERVER['HTTP_X_REAL_IP'])) {
+        return $_SERVER['HTTP_X_REAL_IP'];
+    }
+    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+        return $_SERVER['HTTP_CLIENT_IP'];
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? '';
+}
+
+function checkRateLimit(string $ip): bool
+{
+    $dir = __DIR__ . '/data';
+    $rateLimitDir = $dir . '/ratelimit';
+    if (!is_dir($rateLimitDir)) {
+        @mkdir($rateLimitDir, 0777, true);
+    }
+
+    $hash = md5($ip);
+    $hour = date('YmdH');
+    $file = $rateLimitDir . '/' . $hash . '_' . $hour . '.txt';
+    $maxRequests = 120;
+
+    $count = file_exists($file) ? (int)file_get_contents($file) : 0;
+    if ($count >= $maxRequests) return false;
+
+    file_put_contents($file, $count + 1, LOCK_EX);
+
+    if (mt_rand(1, 10) === 1) {
+        $cutoff = time() - 86400;
+        $oldFiles = glob($rateLimitDir . '/*.txt');
+        foreach ($oldFiles as $of) {
+            $mtime = filemtime($of);
+            if ($mtime !== false && $mtime < $cutoff) {
+                @unlink($of);
+            }
+        }
+    }
+
+    return true;
+}
+
+if ($routeLogout) {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $_SESSION = [];
+    session_destroy();
+    header('Location: ?view');
+    return;
+}
 
 if ($routeApi) {
+    $ip = getClientIp();
+    if (!checkRateLimit($ip)) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(429);
+        echo json_encode(['error' => 'too many requests']);
+        return;
+    }
+
     header('Content-Type: application/json; charset=utf-8');
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -36,7 +103,6 @@ if ($routeApi) {
         if ($config['collect_referrer']) $data['referrer'] = $input['referrer'] ?? '';
         if ($config['collect_page']) $data['page'] = $input['page'] ?? '';
         if ($config['store_ip']) {
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
             $data['ip'] = $ip;
             if ($config['geo_lookup'] && $ip) {
                 $data['geo'] = geoLookup($ip);
@@ -66,6 +132,10 @@ if ($routeApi) {
 }
 
 if ($routeView) {
+    if ($config['retention_days'] > 0) {
+        $storage = createStorage($config);
+        $storage->cleanup($config['retention_days']);
+    }
     require_once __DIR__ . '/lib/auth.php';
     require_once __DIR__ . '/lib/view.php';
     serveView();

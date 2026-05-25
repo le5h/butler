@@ -8,6 +8,7 @@ abstract class Storage
     abstract public function getVisitCount(string $range): int;
     abstract public function getStats(string $range): array;
     abstract public function getAggregatedStats(string $range): array;
+    abstract public function cleanup(int $retentionDays): int;
 
     protected static function fillChartGaps(array $buckets, string $range): array
     {
@@ -241,19 +242,38 @@ class FileStorage extends Storage
 
         return self::fillChartGaps($buckets, $range);
     }
+
+    public function cleanup(int $retentionDays): int
+    {
+        if ($retentionDays <= 0) return 0;
+        $cutoff = time() - $retentionDays * 86400;
+        $removed = 0;
+        $files = glob($this->dir . '/*.txt');
+        foreach ($files as $file) {
+            $basename = basename($file, '.txt');
+            $ts = strtotime($basename);
+            if ($ts !== false && $ts < $cutoff) {
+                unlink($file);
+                $removed++;
+            }
+        }
+        $this->recordsCache = null;
+        return $removed;
+    }
 }
 
 class SqliteStorage extends Storage
 {
     private \PDO $pdo;
+    private string $dir;
 
     public function __construct(string $dir)
     {
-        $dir = rtrim($dir, '/\\');
-        if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
+        $this->dir = rtrim($dir, '/\\');
+        if (!is_dir($this->dir)) {
+            mkdir($this->dir, 0777, true);
         }
-        $dbFile = $dir . '/stats.db';
+        $dbFile = $this->dir . '/stats.db';
         $this->pdo = new \PDO("sqlite:$dbFile");
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $this->pdo->exec("CREATE TABLE IF NOT EXISTS visits (
@@ -268,9 +288,15 @@ class SqliteStorage extends Storage
             referrer TEXT DEFAULT '',
             page TEXT DEFAULT ''
         )");
+        $this->migrateSchema();
+    }
+
+    private function migrateSchema(): void
+    {
         try {
-            $this->pdo->exec("ALTER TABLE visits ADD COLUMN geo TEXT DEFAULT ''");
+            $stmt = $this->pdo->query("SELECT geo FROM visits LIMIT 1");
         } catch (\PDOException $e) {
+            $this->pdo->exec("ALTER TABLE visits ADD COLUMN geo TEXT DEFAULT ''");
         }
     }
 
@@ -356,6 +382,16 @@ class SqliteStorage extends Storage
             ];
         }
         return self::fillChartGaps($buckets, $range);
+    }
+
+    public function cleanup(int $retentionDays): int
+    {
+        if ($retentionDays <= 0) return 0;
+        $cutoff = time() - $retentionDays * 86400;
+        $stmt = $this->pdo->prepare("DELETE FROM visits WHERE timestamp < :cutoff");
+        $stmt->execute([':cutoff' => $cutoff]);
+        $this->pdo->exec("VACUUM");
+        return $stmt->rowCount();
     }
 
     private function rangeWhere(string $range): string

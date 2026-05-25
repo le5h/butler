@@ -9,4 +9,5 @@ return [
     'collect_referrer' => true,
     'collect_lang' => true,
     'collect_page' => true,
+    'retention_days' => 0,
 ];

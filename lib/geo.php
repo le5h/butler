@@ -13,16 +13,23 @@ function detectOS($ua)
 
 function geoLookup($ip)
 {
-    if ($ip === '127.0.0.1' || $ip === '::1') return 'localhost';
-    $resp = @file_get_contents("http://ip-api.com/json/{$ip}?fields=country,regionName,city");
+    static $cache = [];
+    if (isset($cache[$ip])) return $cache[$ip];
+    if ($ip === '127.0.0.1' || $ip === '::1') return $cache[$ip] = 'localhost';
+
+    $ctx = stream_context_create(['http' => [
+        'timeout' => 3,
+        'user_agent' => 'local-stats/1.0',
+    ]]);
+    $resp = @file_get_contents("https://ip-api.com/json/{$ip}?fields=country,regionName,city", false, $ctx);
     if ($resp) {
         $data = json_decode($resp, true);
         if (!empty($data['city'])) {
-            return $data['city'] . ', ' . $data['regionName'] . ', ' . $data['country'];
+            return $cache[$ip] = $data['city'] . ', ' . $data['regionName'] . ', ' . $data['country'];
         }
         if (!empty($data['country'])) {
-            return $data['country'];
+            return $cache[$ip] = $data['country'];
         }
     }
-    return $ip;
+    return $cache[$ip] = $ip;
 }

@@ -8,34 +8,52 @@ function serveSettings()
     $message = '';
     $error = '';
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $pwd = $_POST['password'] ?? '';
-        $storage = $_POST['storage'] ?? 'file';
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
 
-        if (!preg_match('/^(file|sqlite)$/', $storage)) {
-            $error = 'Invalid storage type.';
+    if (empty($_SESSION['settings_csrf'])) {
+        $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
+    }
+    $csrfToken = $_SESSION['settings_csrf'];
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $submittedToken = $_POST['_csrf'] ?? '';
+        if (!hash_equals($csrfToken, $submittedToken)) {
+            $error = 'Invalid CSRF token. Please try again.';
         } else {
-            $config['storage'] = $storage;
-            $config['store_ip'] = !empty($_POST['store_ip']);
-            $config['geo_lookup'] = !empty($_POST['geo_lookup']);
-            $config['collect_referrer'] = !empty($_POST['collect_referrer']);
-            $config['collect_lang'] = !empty($_POST['collect_lang']);
-            $config['collect_page'] = !empty($_POST['collect_page']);
-            if ($pwd !== '') {
-                $config['password'] = password_hash($pwd, PASSWORD_BCRYPT);
-            }
-            if (empty($config['auth_secret'])) {
-                $config['auth_secret'] = strtoupper(bin2hex(random_bytes(10)));
-            }
-            $written = file_put_contents(
-                $configFile,
-                '<?php' . "\n\nreturn " . var_export($config, true) . ";\n",
-                LOCK_EX
-            );
-            if ($written === false) {
-                $error = 'Failed to write config file. Check permissions.';
+            $pwd = $_POST['password'] ?? '';
+            $storage = $_POST['storage'] ?? 'file';
+
+            if (!preg_match('/^(file|sqlite)$/', $storage)) {
+                $error = 'Invalid storage type.';
             } else {
-                $message = 'Configuration saved.';
+                $config['storage'] = $storage;
+                $config['store_ip'] = !empty($_POST['store_ip']);
+                $config['geo_lookup'] = !empty($_POST['geo_lookup']);
+                $config['collect_referrer'] = !empty($_POST['collect_referrer']);
+                $config['collect_lang'] = !empty($_POST['collect_lang']);
+                $config['collect_page'] = !empty($_POST['collect_page']);
+                $retention = (int)($_POST['retention_days'] ?? 0);
+                $config['retention_days'] = max(0, $retention);
+                if ($pwd !== '') {
+                    $config['password'] = password_hash($pwd, PASSWORD_BCRYPT);
+                }
+                if (empty($config['auth_secret'])) {
+                    $config['auth_secret'] = base32_encode(random_bytes(20));
+                }
+                $written = file_put_contents(
+                    $configFile,
+                    '<?php' . "\n\nreturn " . var_export($config, true) . ";\n",
+                    LOCK_EX
+                );
+                if ($written === false) {
+                    $error = 'Failed to write config file. Check permissions.';
+                } else {
+                    $message = 'Configuration saved.';
+                    $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
+                    $csrfToken = $_SESSION['settings_csrf'];
+                }
             }
         }
     }
@@ -47,6 +65,7 @@ function serveSettings()
     $collectReferrer = !empty($config['collect_referrer']);
     $collectLang = !empty($config['collect_lang']);
     $collectPage = !empty($config['collect_page']);
+    $retentionDays = (int)($config['retention_days'] ?? 0);
     $secret = $config['auth_secret'];
 
     header('Content-Type: text/html; charset=utf-8');
@@ -64,7 +83,7 @@ h1{margin-bottom:24px;font-size:1.5rem}
 .card{background:#fff;border-radius:8px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .form-group{margin-bottom:16px}
 label{display:block;font-weight:600;margin-bottom:4px;font-size:.9rem}
-select,input[type=password]{width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;font-size:1rem}
+select,input[type=password],input[type=number]{width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;font-size:1rem}
 .btn{background:#0066cc;color:#fff;border:none;padding:12px 24px;border-radius:4px;font-size:1rem;cursor:pointer}
 .btn:hover{background:#0052a3}
 .msg{padding:12px;border-radius:4px;margin-bottom:16px;font-size:.9rem}
@@ -73,6 +92,7 @@ select,input[type=password]{width:100%;padding:10px;border:1px solid #ddd;border
 .secret{font-family:monospace;background:#f0f0f0;padding:8px;border-radius:4px;word-break:break-all;margin:8px 0;font-size:.9rem}
 footer{margin-top:32px;font-size:.8rem;color:#999;text-align:center}
 a{color:#0066cc}
+hr{border:none;border-top:1px solid #eee;margin:16px 0}
 </style>
 </head>
 <body>
@@ -84,6 +104,8 @@ a{color:#0066cc}
 <?php if ($error): ?><div class="msg err"><?=htmlspecialchars($error)?></div><?php endif; ?>
 
 <form method="post">
+<input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
+
 <div class="form-group">
 <label for="storage">Storage backend</label>
 <select name="storage" id="storage">
@@ -102,7 +124,7 @@ a{color:#0066cc}
 <label style="font-weight:400;font-size:.85rem"><input type="checkbox" name="collect_lang" value="1" <?=$collectLang?'checked':''?>> Collect browser language</label>
 </div>
 
-<hr style="margin:16px 0;border:none;border-top:1px solid #eee">
+<hr>
 
 <div class="form-group">
 <label><input type="checkbox" name="store_ip" value="1" <?=$storeIp?'checked':''?>> Store visitor IP address</label>
@@ -111,6 +133,15 @@ a{color:#0066cc}
 <div class="form-group">
 <label><input type="checkbox" name="geo_lookup" value="1" <?=$geoLookup?'checked':''?>> Look up geo location from IP (requires IP storage)</label>
 </div>
+
+<hr>
+
+<div class="form-group">
+<label for="retention_days">Auto-cleanup (days, 0 = never)</label>
+<input type="number" name="retention_days" id="retention_days" value="<?=$retentionDays?>" min="0" max="3650">
+</div>
+
+<hr>
 
 <div class="form-group">
 <label for="password"><?=$hasPassword?'New password (leave blank to keep current)':'Set access password'?></label>
@@ -121,9 +152,9 @@ a{color:#0066cc}
 </form>
 
 <?php if ($secret): ?>
-<hr style="margin:20px 0;border:none;border-top:1px solid #eee">
+<hr>
 <h3 style="font-size:1rem;margin-bottom:8px">Authenticator App (TOTP)</h3>
-<p style="font-size:.85rem;color:#666;margin-bottom:8px">Secret key — enter this manually in your authenticator app:</p>
+<p style="font-size:.85rem;color:#666;margin-bottom:8px">Secret key — enter this manually in your authenticator app (e.g. Google Authenticator, Authy):</p>
 <div class="secret" style="user-select:all"><?=htmlspecialchars($secret)?></div>
 <?php
 $issuer = rawurlencode('local-stats');
