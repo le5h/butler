@@ -106,28 +106,24 @@ class FileStorage {
         $date = date('Y-m-d', (int)substr($id, 0, 10));
         $file = $this->fileFor($date);
         if (!file_exists($file)) return false;
-        $lines = file($file);
-        $offset = 0;
-        foreach ($lines as $i => $line) {
+        $record = null;
+        $fh = fopen($file, 'r');
+        flock($fh, LOCK_SH);
+        while (($line = fgets($fh)) !== false) {
             $parts = explode("\t", $line, 2);
-            if ($parts[0] !== $id) { $offset += strlen($line); continue; }
-            $record = json_decode(rtrim($parts[1], "\n"), true);
-            foreach ($data as $k => $v) {
-                $record[$k] = $v;
+            if ($parts[0] === $id) {
+                $record = json_decode(rtrim($parts[1], "\n"), true);
             }
-            $newLine = $id . "\t" . json_encode(array_filter($record, fn($v) => $v !== '')) . "\n";
-            $rest = implode('', array_slice($lines, $i + 1));
-            $fh = fopen($file, 'c');
-            flock($fh, LOCK_EX);
-            fseek($fh, $offset);
-            fwrite($fh, $rest);
-            ftruncate($fh, ftell($fh));
-            fwrite($fh, $newLine);
-            flock($fh, LOCK_UN);
-            fclose($fh);
-            return true;
         }
-        return false;
+        flock($fh, LOCK_UN);
+        fclose($fh);
+        if (!$record) return false;
+        foreach ($data as $k => $v) {
+            $record[$k] = $v;
+        }
+        $line = $id . "\t" . json_encode(array_filter($record, fn($v) => $v !== '')) . "\n";
+        file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+        return true;
     }
 
     private function readRecords(string $range): array {
@@ -155,14 +151,14 @@ class FileStorage {
                 $parts = explode("\t", $line, 2);
                 if (count($parts) === 2) {
                     $record = json_decode($parts[1], true);
-                    if ($record) $records[] = $record;
+                    if ($record && !empty($record['id'])) $records[$record['id']] = $record;
                 }
             }
         }
 
-        $this->recordsCache = $records;
+        $this->recordsCache = array_values($records);
         $this->cacheRange = $range;
-        return $records;
+        return $this->recordsCache;
     }
 
     public function getVisits(string $range, int $page, int $perPage): array {
