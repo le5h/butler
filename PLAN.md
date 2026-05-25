@@ -39,8 +39,7 @@
 
 ## Phase 7 – Polish
 - [x] Error handling
-- [x] XSS protection (htmlspecialchars on all user data)
-- [ ] CSP headers (blocked by inline scripts + Chart.js CDN — needs nonce or hash approach)
+- [x] XSS protection (htmlspecialchars on all user data) — CSP is the embedding site's responsibility
 - [x] Performance: hot-path split, on-demand lib loading, SQL-level aggregation
 - [x] Privacy: minimal data by default, all optional fields opt-in
 
