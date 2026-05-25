@@ -55,12 +55,25 @@
 - [x] Auth logout (`?logout`)
 
 ## Phase 8 – Future
-- [ ] TOTP two-factor auth — ~~verify codes on login, implement server-side validation~~ **done**
-- [ ] Configurable visit retention / auto-cleanup — **done**
-- [ ] Export stats (CSV/JSON) — **done**
+- [x] TOTP two-factor auth — ~~verify codes on login, implement server-side validation~~ **done**
+- [x] Configurable visit retention / auto-cleanup — **done**
+- [x] Export stats (CSV/JSON) — **done**
 - [ ] Email / push notification summaries
 - [ ] Real-time dashboard with SSE
 - [ ] Plugins / webhook integration
+- [ ] **Breakdowns section on `?view`** — inline card with top-N tables. No new routes, no new page types. All rendered on the existing dashboard below the chart.
+
+  | Breakdown | Data source | Presentation |
+  |---|---|---|
+  | Top pages | `page` (default on) | Ranked table: page URL → visits → avg duration |
+  | Top referrers | `referrer` (default on) | Ranked table: source → visits; "Direct" when empty |
+  | Bounce rate | `interactions`, `duration` | Summary stat card (% with 0 clicks or <3s) |
+  | Top operating systems | `os` (always collected) | Horizontal bar chart or ranked table: OS → visits |
+  | Top languages | `lang` (default on) | Ranked table: lang code → visits |
+  | Top countries | `geo` (opt-in only) | Ranked table: location → visits (shown only when geo data exists) |
+  | Hourly & weekday trends | `timestamp` (always) | Small heatmap-style row or two compact bar charts on the dashboard |
+
+  All breakdowns share a single `getBreakdowns(string $range): array` method on the `Storage` interface — one query per backend, computed server-side, rendered as simple HTML tables. Keeps the view layer trivially simple.
 
 ## Architecture
 - `index.php` — lean router + inline JS/API handlers (hot path)
