@@ -2,48 +2,53 @@
 
 ## Phase 1 – Foundation
 - [x] Init git repo, README, PLAN
-- [ ] Create `index.php` with router (`?js`, `?api`, `?view`, `?setup`)
-- [ ] Create `config.php` – password, auth codes, storage backend setting
+- [x] Create `index.php` with router (`?js`, `?api`, `?view`, `?settings`)
+- [x] Create `config.php` – password, auth codes, storage backend, collection toggles
 
 ## Phase 2 – Storage Layer
-- [ ] `lib/storage.php` – interface with two implementations:
+- [x] `lib/storage.php` – interface with two implementations:
   - `FileStorage` (date.txt append-log per day)
-  - `SqliteStorage` (SQLite via PDO)
-- [ ] Auto-detect backend from config, fallback to file
+  - `SqliteStorage` (SQLite via PDO with `getAggregatedStats()` GROUP BY)
+- [x] Auto-detect backend from config, fallback to file
 
 ## Phase 3 – API (?api)
-- [ ] `api/new` – create visit, return ID
-- [ ] `api/update` – update duration, interactions by ID
-- [ ] CORS + JSON responses
-- [ ] Basic auth via `pwd` param or header
+- [x] `api/new` – create visit, return ID
+- [x] `api/update` – update duration, interactions by ID
+- [x] CORS + JSON responses
+- [x] Respect collection toggles (page/referrer/lang gated by config)
 
 ## Phase 4 – JS Snippet (?js)
-- [ ] Return minified inline JS that loads on page
-- [ ] Calls `api/new` on load, `api/update` on unload / visibility change
-- [ ] Sends: referrer, user-agent, language, screen size
+- [x] Return minified inline JS that loads on page
+- [x] Calls `api/new` on load, `api/update` on unload / visibility change
+- [x] Collection settings inlined as `S` object — only sends enabled fields
+- [x] Uses `navigator.sendBeacon` for reliable leave events
 
 ## Phase 5 – View (?view)
-- [ ] HTML page with range switcher (day/week/month/all)
-- [ ] Chart.js or pure canvas bar chart (visits + avg duration)
-- [ ] Summary card (total visits, avg visit time)
-- [ ] Paginated visits table (id, timestamp, duration, interactions, lang, IP/location, OS)
-- [ ] IP → location via free geo API or local GeoLite DB
+- [x] HTML page with range switcher (day/week/month/all)
+- [x] Chart.js bar chart (visits + avg duration from `getAggregatedStats()`)
+- [x] Summary card (total visits, avg visit time)
+- [x] Paginated visits table (id, timestamp, duration, interactions, lang, IP, geo, OS, page)
+- [x] IP → location at creation time via ip-api.com (opt-in)
 
-## Phase 6 – Setup (?setup)
-- [ ] Storage backend selector (file ↔ sqlite)
-- [ ] Password set / change
-- [ ] Auth code generation + QR code display (via `chart.js` or similar)
-- [ ] Save to `config.php`
+## Phase 6 – Settings (?settings)
+- [x] Data collection toggles (page URL, referrer, language, IP, geo)
+- [x] Storage backend selector (file ↔ sqlite)
+- [x] Password set / change
+- [x] Auth code generation + QR code display
+- [x] Save to `config.php`
 
 ## Phase 7 – Polish
 - [x] Error handling
 - [x] CSP headers, XSS protection
-- [x] Final testing, lint, commit
+- [x] Performance: hot-path split, on-demand lib loading, SQL-level aggregation
+- [x] Privacy: minimal data by default, all optional fields opt-in
 
-## Architecture (performance-optimized)
+## Architecture
 - `index.php` — lean router + inline JS/API handlers (hot path)
-- `lib/storage.php` — FileStorage & SqliteStorage with `getAggregatedStats()` for SQL-level aggregation
+- `lib/storage.php` — FileStorage & SqliteStorage with `getAggregatedStats()`
 - `lib/geo.php` — OS detection + IP geo-lookup helpers
-- `lib/auth.php` — password auth (loaded only for view/setup)
+- `lib/auth.php` — password auth (loaded only for view/settings)
 - `lib/view.php` — stats page with Chart.js (loaded only for ?view)
-- `lib/setup.php` — config page (loaded only for ?setup)
+- `lib/settings.php` — admin settings page (loaded only for ?settings)
+- `config.php` — persistent settings
+- `data/` — runtime storage (gitignored)
