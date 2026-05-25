@@ -275,6 +275,7 @@ class SqliteStorage {
             referrer TEXT DEFAULT '',
             page TEXT DEFAULT ''
         )");
+        $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_visits_timestamp ON visits(timestamp)");
         $this->migrateSchema();
     }
 
@@ -400,8 +401,9 @@ class SqliteStorage {
         $cutoff = time() - $retentionDays * 86400;
         $stmt = $this->pdo->prepare("DELETE FROM visits WHERE timestamp < :cutoff");
         $stmt->execute([':cutoff' => $cutoff]);
-        $this->pdo->exec("VACUUM");
-        return $stmt->rowCount();
+        $deleted = $stmt->rowCount();
+        if ($deleted > 0) $this->pdo->exec("VACUUM");
+        return $deleted;
     }
 
     private function rangeWhere(string $range): string {
