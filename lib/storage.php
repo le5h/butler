@@ -93,7 +93,6 @@ class FileStorage {
     public function newVisit(array $data): string {
         $this->recordsCache = null;
         $id = str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
-        $data['id'] = $id;
         $data['timestamp'] = time();
         $line = $id . "\t" . json_encode(array_filter($data, fn($v) => $v !== '')) . "\n";
         $file = $this->fileFor(date('Y-m-d'));
@@ -121,6 +120,7 @@ class FileStorage {
         foreach ($data as $k => $v) {
             $record[$k] = $v;
         }
+        unset($record['id']);
         $line = $id . "\t" . json_encode(array_filter($record, fn($v) => $v !== '')) . "\n";
         file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
         return true;
@@ -151,7 +151,7 @@ class FileStorage {
                 $parts = explode("\t", $line, 2);
                 if (count($parts) === 2) {
                     $record = json_decode($parts[1], true);
-                    if ($record && !empty($record['id'])) $records[$record['id']] = $record;
+                    if ($record) { $record['id'] = $parts[0]; $records[$parts[0]] = $record; }
                 }
             }
         }
