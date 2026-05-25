@@ -1,60 +1,55 @@
 <?php
 
-abstract class Storage {
-    abstract public function newVisit(array $data): string;
-    abstract public function updateVisit(string $id, array $data): bool;
-    abstract public function getVisits(string $range, int $page, int $perPage): array;
-    abstract public function getVisitCount(string $range): int;
-    abstract public function getStats(string $range): array;
-    abstract public function getAggregatedStats(string $range): array;
-    abstract public function cleanup(int $retentionDays): int;
-
-    protected static function fillChartGaps(array $buckets, string $range): array {
-        if ($range === 'day') {
-            $labels = $counts = $durations = [];
-            for ($h = 0; $h < 24; $h++) {
-                $labels[] = sprintf('%02d:00', $h);
-                $b = $buckets[$h] ?? ['count' => 0, 'avg' => 0];
-                $counts[] = $b['count'];
-                $durations[] = $b['avg'];
-            }
-            return compact('labels', 'counts', 'durations');
-        }
-
-        if ($range === 'all') {
-            ksort($buckets);
-            $labels = $counts = $durations = [];
-            foreach ($buckets as $key => $b) {
-                $labels[] = date('M j', strtotime($key));
-                $counts[] = $b['count'];
-                $durations[] = $b['avg'];
-            }
-            return compact('labels', 'counts', 'durations');
-        }
-
-        $end = new DateTime();
-        $start = clone $end;
-        $start->modify($range === 'month' ? '-29 days' : '-6 days');
-
+function fillChartGaps(array $buckets, string $range): array {
+    if ($range === 'day') {
         $labels = $counts = $durations = [];
-        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
-        foreach ($period as $d) {
-            $date = $d->format('Y-m-d');
-            $labels[] = $d->format('M j');
-            $b = $buckets[$date] ?? ['count' => 0, 'avg' => 0];
+        for ($h = 0; $h < 24; $h++) {
+            $labels[] = sprintf('%02d:00', $h);
+            $b = $buckets[$h] ?? ['count' => 0, 'avg' => 0];
             $counts[] = $b['count'];
             $durations[] = $b['avg'];
         }
-        $labels[] = $end->format('M j');
-        $b = $buckets[$end->format('Y-m-d')] ?? ['count' => 0, 'avg' => 0];
-        $counts[] = $b['count'];
-        $durations[] = $b['avg'];
-
         return compact('labels', 'counts', 'durations');
     }
+    if ($range === 'all') {
+        ksort($buckets);
+        $labels = $counts = $durations = [];
+        foreach ($buckets as $key => $b) {
+            $labels[] = date('M j', strtotime($key));
+            $counts[] = $b['count'];
+            $durations[] = $b['avg'];
+        }
+        return compact('labels', 'counts', 'durations');
+    }
+    $end = new DateTime();
+    $start = clone $end;
+    $start->modify($range === 'month' ? '-29 days' : '-6 days');
+    $labels = $counts = $durations = [];
+    $period = new DatePeriod($start, new DateInterval('P1D'), $end);
+    foreach ($period as $d) {
+        $date = $d->format('Y-m-d');
+        $labels[] = $d->format('M j');
+        $b = $buckets[$date] ?? ['count' => 0, 'avg' => 0];
+        $counts[] = $b['count'];
+        $durations[] = $b['avg'];
+    }
+    $labels[] = $end->format('M j');
+    $b = $buckets[$end->format('Y-m-d')] ?? ['count' => 0, 'avg' => 0];
+    $counts[] = $b['count'];
+    $durations[] = $b['avg'];
+    return compact('labels', 'counts', 'durations');
 }
 
-class FileStorage extends Storage {
+function trimmedMean(array $vals): float {
+    $n = count($vals);
+    if ($n === 0) return 0;
+    sort($vals);
+    $trim = max(1, (int)ceil($n * 0.05));
+    $keep = array_slice($vals, $trim, $n - 2 * $trim);
+    return empty($keep) ? (float)$vals[(int)floor($n / 2)] : array_sum($keep) / count($keep);
+}
+
+class FileStorage {
     private string $dir;
     private ?array $recordsCache = null;
     private string $cacheRange = '';
@@ -79,10 +74,10 @@ class FileStorage extends Storage {
                 $start->modify('-1 day');
                 break;
             case 'week':
-                $start->modify('-7 days');
+                $start->modify('-6 days');
                 break;
             case 'month':
-                $start->modify('-30 days');
+                $start->modify('-29 days');
                 break;
             case 'all':
                 return []; // empty means all
@@ -108,27 +103,20 @@ class FileStorage extends Storage {
 
     public function updateVisit(string $id, array $data): bool {
         $this->recordsCache = null;
-        $files = glob($this->dir . '/*.txt');
-        sort($files);
-        foreach ($files as $file) {
-            $lines = file($file, FILE_IGNORE_NEW_LINES);
-            $changed = false;
-            foreach ($lines as $i => $line) {
-                $parts = explode("\t", $line, 2);
-                if ($parts[0] === $id) {
-                    $record = json_decode($parts[1], true);
-                    foreach ($data as $k => $v) {
-                        $record[$k] = $v;
-                    }
-                    $lines[$i] = $id . "\t" . json_encode($record);
-                    $changed = true;
-                    break;
-                }
+        $date = date('Y-m-d', (int)substr($id, 0, 10));
+        $file = $this->fileFor($date);
+        if (!file_exists($file)) return false;
+        $lines = file($file, FILE_IGNORE_NEW_LINES);
+        foreach ($lines as $i => $line) {
+            $parts = explode("\t", $line, 2);
+            if ($parts[0] !== $id) continue;
+            $record = json_decode($parts[1], true);
+            foreach ($data as $k => $v) {
+                $record[$k] = $v;
             }
-            if ($changed) {
-                file_put_contents($file, implode("\n", $lines) . "\n");
-                return true;
-            }
+            $lines[$i] = $id . "\t" . json_encode($record);
+            file_put_contents($file, implode("\n", $lines) . "\n");
+            return true;
         }
         return false;
     }
@@ -196,14 +184,6 @@ class FileStorage extends Storage {
             $n = (int)($r['interactions'] ?? 0);
             $quality[$d <= 10 ? ($n > 0 ? 'okay' : 'bad') : ($n > 0 ? 'super' : 'poor')]++;
         }
-        $trimmedMean = function(array $vals): float {
-            $n = count($vals);
-            if ($n === 0) return 0;
-            sort($vals);
-            $trim = max(1, (int)ceil($n * 0.05));
-            $keep = array_slice($vals, $trim, $n - 2 * $trim);
-            return empty($keep) ? (float)$vals[(int)floor($n / 2)] : array_sum($keep) / count($keep);
-        };
         $topKey = function(array $counts): string {
             if (empty($counts)) return '';
             arsort($counts);
@@ -211,8 +191,8 @@ class FileStorage extends Storage {
         };
         return [
             'total_visits' => $total,
-            'typ_duration' => round($trimmedMean($durations), 1),
-            'typ_interactions' => round($trimmedMean($interactions), 1),
+            'typ_duration' => round(trimmedMean($durations), 1),
+            'typ_interactions' => round(trimmedMean($interactions), 1),
             'top_language' => $topKey($langCount),
             'top_os' => $topKey($osCount),
             'quality' => $quality,
@@ -250,7 +230,7 @@ class FileStorage extends Storage {
             }
         }
 
-        return self::fillChartGaps($buckets, $range);
+        return fillChartGaps($buckets, $range);
     }
 
     public function cleanup(int $retentionDays): int {
@@ -271,7 +251,7 @@ class FileStorage extends Storage {
     }
 }
 
-class SqliteStorage extends Storage {
+class SqliteStorage {
     private \PDO $pdo;
     private string $dir;
 
@@ -366,14 +346,6 @@ class SqliteStorage extends Storage {
         $interactions = $this->pdo->query("SELECT interactions FROM visits $wAll ORDER BY interactions")
             ->fetchAll(\PDO::FETCH_COLUMN);
 
-        $trimmedMean = function(array $vals): float {
-            $n = count($vals);
-            if ($n === 0) return 0;
-            $trim = max(1, (int)ceil($n * 0.05));
-            $keep = array_slice($vals, $trim, $n - 2 * $trim);
-            return empty($keep) ? (float)$vals[(int)floor($n / 2)] : array_sum($keep) / count($keep);
-        };
-
         $wLang = $where ? "$where AND lang != ''" : "WHERE lang != ''";
         $wOs = $where ? "$where AND os != ''" : "WHERE os != ''";
         $topLang = $this->pdo->query("SELECT lang, COUNT(*) as c FROM visits $wLang GROUP BY lang ORDER BY c DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
@@ -395,8 +367,8 @@ class SqliteStorage extends Storage {
 
         return [
             'total_visits' => $total,
-            'typ_duration' => round($trimmedMean($durations), 1),
-            'typ_interactions' => round($trimmedMean($interactions), 1),
+            'typ_duration' => round(trimmedMean($durations), 1),
+            'typ_interactions' => round(trimmedMean($interactions), 1),
             'top_language' => $topLang ? $topLang['lang'] : '',
             'top_os' => $topOs ? $topOs['os'] : '',
             'quality' => $quality,
@@ -420,7 +392,7 @@ class SqliteStorage extends Storage {
                 'avg' => $r['avg_dur'] ? round((float)$r['avg_dur'], 1) : 0,
             ];
         }
-        return self::fillChartGaps($buckets, $range);
+        return fillChartGaps($buckets, $range);
     }
 
     public function cleanup(int $retentionDays): int {
@@ -445,7 +417,7 @@ class SqliteStorage extends Storage {
     }
 }
 
-function createStorage(array $config): Storage {
+function createStorage(array $config): FileStorage|SqliteStorage {
     $dir = __DIR__ . '/../data';
     try {
         return $config['storage'] === 'sqlite'

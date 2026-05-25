@@ -38,9 +38,8 @@ function subnetAddress($ip) {
         return $parts[0] . '.' . $parts[1] . '.' . $parts[2] . '.0/24';
     }
     if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-        $parts = explode(':', $ip);
-        $hextets = array_slice($parts, 0, 4);
-        return implode(':', $hextets) . '::/64';
+        $binary = inet_pton($ip);
+        return inet_ntop(substr($binary, 0, 8) . str_repeat("\x00", 8)) . '::/64';
     }
     return '';
 }

@@ -27,13 +27,13 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-se
 .chart-wrap{background:#18191f;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #2a2b33}
 
 /* Summary cards */
-.summary{display:flex;gap:16px;margin-bottom:24px}
-.summary-card{background:#18191f;border-radius:12px;padding:24px;flex:1;text-align:center;border:1px solid #2a2b33}
+.summary{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.summary-card{background:#18191f;border-radius:12px;padding:24px;flex:1 1 160px;text-align:center;border:1px solid #2a2b33}
 .summary-card .num{font-size:2.2rem;font-weight:800;color:#c4b5fd;letter-spacing:-.03em}
 .summary-card .label{font-size:.8rem;color:#6b6d77;margin-top:6px;text-transform:uppercase;letter-spacing:.05em}
 
 /* Toolbar */
-.toolbar{display:flex;gap:8px;margin-bottom:20px;align-items:center}
+.toolbar{display:flex;gap:8px;margin-top:20px;align-items:center;justify-content:center}
 .toolbar a{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;background:#18191f;border:1px solid #2a2b33;text-decoration:none;color:#b0b2b8;border-radius:8px;font-size:.82rem;transition:all .15s}
 .toolbar a:hover{background:#21222a;border-color:#818cf8;color:#ecedee}
 
@@ -141,6 +141,21 @@ a:hover{color:#a78bfa}
 .quality-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.78rem;color:#8b8d97}
 .quality-legend .ql{display:inline-flex;align-items:center;gap:5px}
 .ql-dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+
+/* Mobile responsive table */
+@media (max-width: 640px) {
+  table, thead, tbody, tr, th, td { display: block }
+  thead tr { display: none }
+  tr { padding: 12px 14px; border-bottom: 1px solid #2a2b33 }
+  tr:hover td { background: transparent }
+  td { padding: 5px 0; border: none; display: flex; justify-content: space-between; gap: 8px; align-items: center }
+  td:before { content: attr(data-label); font-weight: 600; color: #8b8d97; text-transform: uppercase; font-size: .75rem; letter-spacing: .04em }
+  td:last-child { border-bottom: none }
+  .empty td { justify-content: center }
+  .empty td:before { content: none }
+  .summary-card { flex: 1 1 140px; padding: 16px }
+  .summary-card .num { font-size: 1.6rem }
+}
 
 /* Landing page */
 .landing{max-width:500px;margin:80px auto;text-align:center}

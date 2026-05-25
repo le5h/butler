@@ -1,10 +1,31 @@
 <?php
 
+function butlerReport(array $stats, string $range): string {
+    $hour = (int)date('G');
+    $e = $hour < 12 ? "\u{2615}" : ($hour < 18 ? "\u{1F324}" : "\u{1F319}");
+    $t = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
+    $n = $stats['total_visits'];
+    $s = (int)round($stats['typ_duration']);
+    $d = $s >= 60 ? floor($s / 60) . 'm ' . ($s % 60) . 's' : $s . 's';
+    $p = $range === 'day' ? 'today' : ($range === 'week' ? 'this week' : ($range === 'month' ? 'this month' : 'all time'));
+    $bad = $stats['quality']['bad'] ?? 0;
+    if ($n === 0) return "$e $t, sir. Nothing to report $p.";
+    if ($n === 1) return "$e $t, sir. One visit $p" . ($s > 0 ? ", stayed $d." : ".");
+    $m = "$e $t, sir. $n visits $p, stay around $d";
+    if ($bad > 0) $m .= ", $bad declined \u{1F6AB}";
+    if ($s > 60) return "$m \u{1F44D}.";
+    if ($n > 50) return "$m. Busy \u{1F4C8}.";
+    return "$m.";
+}
+
 function serveView() {
     global $config;
     if (!checkAuth('view')) return;
 
     $storage = createStorage($config);
+    if ($config['retention_days'] > 0) {
+        $storage->cleanup($config['retention_days']);
+    }
     $range = $_GET['range'] ?? 'day';
     $page = max(1, (int)($_GET['page'] ?? 1));
     $perPage = 20;
@@ -48,23 +69,7 @@ function serveView() {
 
     $queryBase = "?view&range=$range";
 
-    $hour = (int)date('G');
-    $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
-    $totalVisits = $stats['total_visits'];
-    $typSec = (int)round($stats['typ_duration']);
-    $durStr = $typSec >= 60 ? floor($typSec / 60) . 'm ' . ($typSec % 60) . 's' : $typSec . 's';
-    $period = $range === 'day' ? 'today' : ($range === 'week' ? 'this week' : ($range === 'month' ? 'this month' : 'all time'));
-    if ($totalVisits === 0) {
-        $report = "$greeting, sir. Nothing to report $period — waiting for your first visit.";
-    } elseif ($totalVisits === 1) {
-        $report = "$greeting, sir. One visit $period" . ($typSec > 0 ? ", stayed for $durStr." : ".");
-    } elseif ($typSec > 60) {
-        $report = "$greeting, sir. $totalVisits visits $period, users stay around $durStr — your visitors are sticking around.";
-    } elseif ($totalVisits > 50) {
-        $report = "$greeting, sir. $totalVisits visits $period, users stay around $durStr. Busy.";
-    } else {
-        $report = "$greeting, sir. $totalVisits visits $period, users stay around $durStr.";
-    }
+    $report = butlerReport($stats, $range);
 
     require_once __DIR__ . '/common.php';
     header('Content-Type: text/html; charset=utf-8');
@@ -108,11 +113,6 @@ function serveView() {
 <canvas id="chart" height="250"></canvas>
 </div>
 
-<div class="toolbar">
-<a href="<?=$queryBase?>&export=csv">Export CSV</a>
-<a href="<?=$queryBase?>&export=json">Export JSON</a>
-</div>
-
 <div class="table-wrap">
 <table>
 <thead><tr>
@@ -130,10 +130,10 @@ function serveView() {
     $ip = htmlspecialchars($v['ip'] ?? '-');
     $geo = htmlspecialchars($v['geo'] ?? '-');
     $os = htmlspecialchars($v['os'] ?? '-');
-    $page = htmlspecialchars($v['page'] ?? '-');
+    $url = htmlspecialchars($v['page'] ?? '-');
     $id = htmlspecialchars(substr($v['id'] ?? '', 0, 8));
 ?>
-<tr><td title="<?=htmlspecialchars($v['id']??'')?>"><?=$id?></td><td><?=$time?></td><td><?=$dur?></td><td><?=$intr?></td><td><span class="q-badge <?=$qCls?>"><?=$qLbl?></span></td><td><?=$lang?></td><td><?=$ip?></td><td><?=$geo?></td><td><?=$os?></td><td><?=$page?></td></tr>
+<tr><td data-label="ID" title="<?=htmlspecialchars($v['id']??'')?>"><?=$id?></td><td data-label="Time"><?=$time?></td><td data-label="Duration"><?=$dur?></td><td data-label="Interactions"><?=$intr?></td><td data-label="Quality"><span class="q-badge <?=$qCls?>"><?=$qLbl?></span></td><td data-label="Language"><?=$lang?></td><td data-label="Subnet"><?=$ip?></td><td data-label="Location"><?=$geo?></td><td data-label="OS"><?=$os?></td><td data-label="Page"><?=$url?></td></tr>
 <?php endforeach; ?>
 <?php if (empty($visits)): ?><tr class="empty"><td colspan="10">No visits recorded yet. Once your tracker is live, data will appear here.</td></tr><?php endif; ?>
 </tbody>
@@ -148,10 +148,15 @@ function serveView() {
 <a href="<?=$queryBase?>&page=<?=$tp?>" class="<?=$p>=$tp?'disabled':''?>">&raquo;</a>
 </div>
 
+<div class="toolbar">
+<a href="<?=$queryBase?>&export=csv">Export CSV</a>
+<a href="<?=$queryBase?>&export=json">Export JSON</a>
+</div>
+
 <script>
 var chartData = <?=json_encode($chartData)?>;
 var ctx = document.getElementById('chart').getContext('2d');
-new Chart(ctx, {
+var chart = new Chart(ctx, {
     type: 'bar',
     data: {
         labels: chartData.labels,
@@ -175,6 +180,7 @@ new Chart(ctx, {
     },
     options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: { legend: { position: 'top' } },
         scales: {
             y: { beginAtZero: true, position: 'left', title: { display: true, text: 'Visits' } },
@@ -182,6 +188,7 @@ new Chart(ctx, {
         }
     }
 });
+window.addEventListener('resize', function(){ chart.resize(); });
 </script>
 
 <?php
