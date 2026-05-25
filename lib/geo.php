@@ -17,7 +17,7 @@ function geoLookup($ip) {
 
     $ctx = stream_context_create(['http' => [
         'timeout' => 3,
-        'user_agent' => 'local-stats/1.0',
+        'user_agent' => 'Butler/1.0',
     ]]);
     $resp = @file_get_contents("https://ip-api.com/json/{$ip}?fields=country,regionName,city", false, $ctx);
     if ($resp) {

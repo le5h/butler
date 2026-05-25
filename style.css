@@ -8,10 +8,15 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-se
 
 /* Nav / Header */
 .top{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-.top h1{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;background:linear-gradient(135deg,#c4b5fd,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-right:auto}
+.top-brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.top h1{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;background:linear-gradient(135deg,#c4b5fd,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.top-subtitle{font-size:.78rem;color:#4a4c54}
 .top a{font-size:.85rem;color:#8b8d97;text-decoration:none;transition:color .15s}
 .top a:hover{color:#c4b5fd}
 .top .spacer{color:#2a2b33;font-size:.7rem}
+
+/* Report */
+.report{background:#18191f;border-radius:12px;padding:20px 24px;margin-bottom:20px;border:1px solid #2a2b33;font-size:.95rem;color:#c4b5fd;line-height:1.5}
 
 /* Range nav */
 .range-nav{display:flex;gap:4px;margin-bottom:24px;background:#18191f;padding:4px;border-radius:10px;border:1px solid #2a2b33;width:fit-content}
@@ -87,12 +92,13 @@ select option{background:#18191f;color:#ecedee}
 hr{border:none;border-top:1px solid #2a2b33;margin:20px 0}
 
 /* Footer */
-.site-footer{margin-top:40px;font-size:.78rem;color:#4a4c54;text-align:center}
+.site-footer{margin-top:40px;padding:24px 0;font-size:.78rem;color:#4a4c54;text-align:center;border-top:1px solid #1a1b22}
 
 /* Auth */
 .auth-body{display:flex;justify-content:center;align-items:center;min-height:100vh}
 .auth-form{background:#18191f;padding:36px;border-radius:14px;border:1px solid #2a2b33;width:100%;max-width:380px}
-.auth-form h2{margin-bottom:8px;font-size:1.15rem;font-weight:700;color:#c4b5fd}
+.auth-brand{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;background:linear-gradient(135deg,#c4b5fd,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.auth-form h2{margin-bottom:4px;font-size:1.15rem;font-weight:700;color:#c4b5fd}
 .auth-form p{margin-bottom:16px;font-size:.85rem;color:#6b6d77}
 .auth-form input{width:100%;margin-bottom:14px}
 .auth-form button{width:100%}
@@ -116,3 +122,31 @@ form .section-heading:first-of-type{margin-top:0}
 
 a{color:#818cf8;text-decoration:none}
 a:hover{color:#a78bfa}
+
+/* Quality badges */
+.q-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.q-badge.q-super{background:rgba(52,211,153,.15);color:#6ee7b7}
+.q-badge.q-okay{background:rgba(251,191,36,.15);color:#fbbf24}
+.q-badge.q-poor{background:rgba(251,146,60,.15);color:#fb923c}
+.q-badge.q-bad{background:rgba(248,113,113,.15);color:#f87171}
+
+/* Quality bar */
+.quality-bar-wrap{background:#18191f;border-radius:12px;padding:20px 24px;margin-bottom:20px;border:1px solid #2a2b33}
+.quality-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:10px}
+.quality-bar .qb{transition:width .3s}
+.qb-super{background:#6ee7b7}
+.qb-okay{background:#fbbf24}
+.qb-poor{background:#fb923c}
+.qb-bad{background:#f87171}
+.quality-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.78rem;color:#8b8d97}
+.quality-legend .ql{display:inline-flex;align-items:center;gap:5px}
+.ql-dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+
+/* Landing page */
+.landing{max-width:500px;margin:80px auto;text-align:center}
+.landing h1{font-size:2.4rem;font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#c4b5fd,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.landing .tagline{color:#6b6d77;font-size:1rem;margin-bottom:36px}
+.landing-actions{display:flex;gap:12px;justify-content:center}
+.landing-actions .btn{font-size:1rem;padding:14px 32px}
+.landing-actions .btn-outline{display:inline-flex;align-items:center;padding:14px 32px;border-radius:8px;border:1px solid #2a2b33;color:#b0b2b8;text-decoration:none;font-size:1rem;font-weight:500;transition:all .15s}
+.landing-actions .btn-outline:hover{background:#18191f;border-color:#818cf8;color:#ecedee}

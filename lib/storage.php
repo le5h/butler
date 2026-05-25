@@ -182,17 +182,40 @@ class FileStorage extends Storage {
     public function getStats(string $range): array {
         $records = $this->readRecords($range);
         $total = count($records);
-        $sumDuration = 0;
-        $countDuration = 0;
+        $durations = [];
+        $interactions = [];
+        $langCount = [];
+        $osCount = [];
+        $quality = ['super' => 0, 'okay' => 0, 'poor' => 0, 'bad' => 0];
         foreach ($records as $r) {
-            if (!empty($r['duration'])) {
-                $sumDuration += (float)$r['duration'];
-                $countDuration++;
-            }
+            if (!empty($r['duration'])) $durations[] = (float)$r['duration'];
+            if (isset($r['interactions'])) $interactions[] = (int)$r['interactions'];
+            if (!empty($r['lang'])) $langCount[$r['lang']] = ($langCount[$r['lang']] ?? 0) + 1;
+            if (!empty($r['os'])) $osCount[$r['os']] = ($osCount[$r['os']] ?? 0) + 1;
+            $d = (float)($r['duration'] ?? 0);
+            $n = (int)($r['interactions'] ?? 0);
+            $quality[$d <= 10 ? ($n > 0 ? 'okay' : 'bad') : ($n > 0 ? 'super' : 'poor')]++;
         }
+        $trimmedMean = function(array $vals): float {
+            $n = count($vals);
+            if ($n === 0) return 0;
+            sort($vals);
+            $trim = max(1, (int)ceil($n * 0.05));
+            $keep = array_slice($vals, $trim, $n - 2 * $trim);
+            return empty($keep) ? (float)$vals[(int)floor($n / 2)] : array_sum($keep) / count($keep);
+        };
+        $topKey = function(array $counts): string {
+            if (empty($counts)) return '';
+            arsort($counts);
+            return array_key_first($counts);
+        };
         return [
             'total_visits' => $total,
-            'avg_duration' => $countDuration > 0 ? round($sumDuration / $countDuration, 2) : 0,
+            'typ_duration' => round($trimmedMean($durations), 1),
+            'typ_interactions' => round($trimmedMean($interactions), 1),
+            'top_language' => $topKey($langCount),
+            'top_os' => $topKey($osCount),
+            'quality' => $quality,
         ];
     }
 
@@ -333,11 +356,50 @@ class SqliteStorage extends Storage {
 
     public function getStats(string $range): array {
         $where = $this->rangeWhere($range);
-        $stmt = $this->pdo->query("SELECT COUNT(*) as total, AVG(duration) as avg_dur FROM visits $where");
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->query("SELECT COUNT(*) as total FROM visits $where");
+        $total = (int)$stmt->fetchColumn();
+
+        $wDur = $where ? "$where AND duration > 0" : "WHERE duration > 0";
+        $wAll = $where ? $where : '';
+        $durations = $this->pdo->query("SELECT duration FROM visits $wDur ORDER BY duration")
+            ->fetchAll(\PDO::FETCH_COLUMN);
+        $interactions = $this->pdo->query("SELECT interactions FROM visits $wAll ORDER BY interactions")
+            ->fetchAll(\PDO::FETCH_COLUMN);
+
+        $trimmedMean = function(array $vals): float {
+            $n = count($vals);
+            if ($n === 0) return 0;
+            $trim = max(1, (int)ceil($n * 0.05));
+            $keep = array_slice($vals, $trim, $n - 2 * $trim);
+            return empty($keep) ? (float)$vals[(int)floor($n / 2)] : array_sum($keep) / count($keep);
+        };
+
+        $wLang = $where ? "$where AND lang != ''" : "WHERE lang != ''";
+        $wOs = $where ? "$where AND os != ''" : "WHERE os != ''";
+        $topLang = $this->pdo->query("SELECT lang, COUNT(*) as c FROM visits $wLang GROUP BY lang ORDER BY c DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+        $topOs = $this->pdo->query("SELECT os, COUNT(*) as c FROM visits $wOs GROUP BY os ORDER BY c DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+
+        $wQ = $where ? $where : '';
+        $quality = ['super' => 0, 'okay' => 0, 'poor' => 0, 'bad' => 0];
+        $qStmt = $this->pdo->query(
+            "SELECT CASE WHEN duration <= 10 AND interactions = 0 THEN 'bad'
+                         WHEN duration <= 10 AND interactions > 0 THEN 'okay'
+                         WHEN duration > 10 AND interactions = 0 THEN 'poor'
+                         WHEN duration > 10 AND interactions > 0 THEN 'super'
+                    END as q, COUNT(*) as c
+             FROM visits $wQ GROUP BY q"
+        );
+        foreach ($qStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $quality[$row['q']] = (int)$row['c'];
+        }
+
         return [
-            'total_visits' => (int)$row['total'],
-            'avg_duration' => $row['avg_dur'] ? round((float)$row['avg_dur'], 2) : 0,
+            'total_visits' => $total,
+            'typ_duration' => round($trimmedMean($durations), 1),
+            'typ_interactions' => round($trimmedMean($interactions), 1),
+            'top_language' => $topLang ? $topLang['lang'] : '',
+            'top_os' => $topOs ? $topOs['os'] : '',
+            'quality' => $quality,
         ];
     }
 

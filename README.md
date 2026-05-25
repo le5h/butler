@@ -1,4 +1,4 @@
-# local-stats
+# Butler
 
 Self-hosted analytics that respects your visitors. Drop the folder on any PHP server, add one script tag, and get clean visitor stats without selling out your data.
 
@@ -9,9 +9,9 @@ Self-hosted analytics that respects your visitors. Drop the folder on any PHP se
 - **Dark theme dashboard** — Chart.js bar chart, paginated visit table, and CSV/JSON export.
 - **Adblocker-resistant** — served from your own domain with no third-party scripts. Not on any blocklist.
 
-## Why local-stats?
+## Why Butler?
 
-Google Analytics, Plausible, Fathom — great tools, but they're either a privacy leak, a monthly bill, or a complex self-hosted setup. **local-stats** is a single PHP folder. Upload it, embed a script, done. No accounts, no tracking networks, no JavaScript framework.
+Google Analytics, Plausible, Fathom — great tools, but they're either a privacy leak, a monthly bill, or a complex self-hosted setup. **Butler** is a single PHP folder. Upload it, embed a script, done. No accounts, no tracking networks, no JavaScript framework.
 
 ## How to use
 

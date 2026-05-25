@@ -183,4 +183,16 @@ if ($routeTest) {
 }
 
 header('Content-Type: text/html; charset=utf-8');
-echo '<h1>local-stats</h1><p>Use <a href="?settings">?settings</a> to configure or <a href="?view">?view</a> to see stats.</p>';
+require_once __DIR__ . '/lib/common.php';
+renderHead('');
+?>
+<div class="landing">
+<h1>Butler</h1>
+<p class="tagline">your privacy-first analytics</p>
+<div class="landing-actions">
+<a href="?settings" class="btn">Get started</a>
+<a href="?view" class="btn-outline">View dashboard</a>
+</div>
+</div>
+<?php
+renderFooter();

@@ -48,6 +48,24 @@ function serveView() {
 
     $queryBase = "?view&range=$range";
 
+    $hour = (int)date('G');
+    $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
+    $totalVisits = $stats['total_visits'];
+    $typSec = (int)round($stats['typ_duration']);
+    $durStr = $typSec >= 60 ? floor($typSec / 60) . 'm ' . ($typSec % 60) . 's' : $typSec . 's';
+    $period = $range === 'day' ? 'today' : ($range === 'week' ? 'this week' : ($range === 'month' ? 'this month' : 'all time'));
+    if ($totalVisits === 0) {
+        $report = "$greeting, sir. Nothing to report $period — waiting for your first visit.";
+    } elseif ($totalVisits === 1) {
+        $report = "$greeting, sir. One visit $period" . ($typSec > 0 ? ", stayed for $durStr." : ".");
+    } elseif ($typSec > 60) {
+        $report = "$greeting, sir. $totalVisits visits $period, users stay around $durStr — your visitors are sticking around.";
+    } elseif ($totalVisits > 50) {
+        $report = "$greeting, sir. $totalVisits visits $period, users stay around $durStr. Busy.";
+    } else {
+        $report = "$greeting, sir. $totalVisits visits $period, users stay around $durStr.";
+    }
+
     require_once __DIR__ . '/common.php';
     header('Content-Type: text/html; charset=utf-8');
     renderHead("Stats - $range");
@@ -62,13 +80,32 @@ function serveView() {
 <?php endforeach; ?>
 </nav>
 
-<div class="chart-wrap">
-<canvas id="chart" height="250"></canvas>
-</div>
+<div class="report"><?=htmlspecialchars($report)?></div>
 
 <div class="summary">
-<div class="summary-card"><div class="num"><?=$stats['total_visits']?></div><div class="label">Total Visits</div></div>
-<div class="summary-card"><div class="num"><?=$stats['avg_duration']?>s</div><div class="label">Avg Duration</div></div>
+<div class="summary-card"><div class="num"><?=$stats['total_visits']?></div><div class="label">Visits</div></div>
+<div class="summary-card"><div class="num"><?=$stats['typ_duration']?>s</div><div class="label">Typical Duration</div></div>
+<div class="summary-card"><div class="num"><?=$stats['typ_interactions']?></div><div class="label">Typical Interactions</div></div>
+<div class="summary-card"><div class="num"><?=htmlspecialchars($stats['top_language'] ?: '-')?></div><div class="label">Most Common Language</div></div>
+<div class="summary-card"><div class="num"><?=htmlspecialchars($stats['top_os'] ?: '-')?></div><div class="label">Most Common OS</div></div>
+</div>
+
+<div class="quality-bar-wrap">
+<?php $q = $stats['quality']; $qt = array_sum($q) ?: 1; ?>
+<div class="quality-bar">
+<?php foreach (['bad','poor','okay','super'] as $t): $pct = round($q[$t] / $qt * 100, 1); if ($pct < 0.1) continue; ?>
+<span class="qb qb-<?=$t?>" style="width:<?=$pct?>%"></span>
+<?php endforeach; ?>
+</div>
+<div class="quality-legend">
+<?php foreach (['bad' => 'Bad','poor' => 'Poor','okay' => 'Okay','super' => 'Super'] as $k => $l): ?>
+<span class="ql"><span class="ql-dot qb-<?=$k?>"></span><?=$l?> <?=$q[$k]?></span>
+<?php endforeach; ?>
+</div>
+</div>
+
+<div class="chart-wrap">
+<canvas id="chart" height="250"></canvas>
 </div>
 
 <div class="toolbar">
@@ -79,13 +116,16 @@ function serveView() {
 <div class="table-wrap">
 <table>
 <thead><tr>
-<th>ID</th><th>Time</th><th>Duration</th><th>Interactions</th><th>Language</th><th>Subnet</th><th>Location</th><th>OS</th><th>Page</th>
+<th>ID</th><th>Time</th><th>Duration</th><th>Interactions</th><th>Quality</th><th>Language</th><th>Subnet</th><th>Location</th><th>OS</th><th>Page</th>
 </tr></thead>
 <tbody>
 <?php foreach ($visits as $v):
     $time = isset($v['timestamp']) ? date('Y-m-d H:i', $v['timestamp']) : '-';
     $dur = isset($v['duration']) ? round($v['duration'], 1) . 's' : '-';
     $intr = $v['interactions'] ?? 0;
+    $qDur = (float)($v['duration'] ?? 0);
+    $qCls = $qDur <= 10 ? ($intr > 0 ? 'q-okay' : 'q-bad') : ($intr > 0 ? 'q-super' : 'q-poor');
+    $qLbl = $qDur <= 10 ? ($intr > 0 ? 'okay' : 'bad') : ($intr > 0 ? 'super' : 'poor');
     $lang = htmlspecialchars($v['lang'] ?? '-');
     $ip = htmlspecialchars($v['ip'] ?? '-');
     $geo = htmlspecialchars($v['geo'] ?? '-');
@@ -93,9 +133,9 @@ function serveView() {
     $page = htmlspecialchars($v['page'] ?? '-');
     $id = htmlspecialchars(substr($v['id'] ?? '', 0, 8));
 ?>
-<tr><td title="<?=htmlspecialchars($v['id']??'')?>"><?=$id?></td><td><?=$time?></td><td><?=$dur?></td><td><?=$intr?></td><td><?=$lang?></td><td><?=$ip?></td><td><?=$geo?></td><td><?=$os?></td><td><?=$page?></td></tr>
+<tr><td title="<?=htmlspecialchars($v['id']??'')?>"><?=$id?></td><td><?=$time?></td><td><?=$dur?></td><td><?=$intr?></td><td><span class="q-badge <?=$qCls?>"><?=$qLbl?></span></td><td><?=$lang?></td><td><?=$ip?></td><td><?=$geo?></td><td><?=$os?></td><td><?=$page?></td></tr>
 <?php endforeach; ?>
-<?php if (empty($visits)): ?><tr class="empty"><td colspan="9">No visits yet</td></tr><?php endif; ?>
+<?php if (empty($visits)): ?><tr class="empty"><td colspan="10">No visits recorded yet. Once your tracker is live, data will appear here.</td></tr><?php endif; ?>
 </tbody>
 </table>
 </div>

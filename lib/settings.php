@@ -130,13 +130,13 @@ function serveSettings() {
 <form method="post">
 <input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
 
-<h4 class="section-heading">Data collection</h4>
+<h4 class="section-heading">What to track</h4>
 
 <div class="form-group">
 <label for="storage">Storage backend</label>
 <select name="storage" id="storage">
-<option value="file" <?=$currentStorage==='file'?'selected':''?>>File (date.txt)</option>
-<option value="sqlite" <?=$currentStorage==='sqlite'?'selected':''?>>SQLite</option>
+<option value="file" <?=$currentStorage==='file'?'selected':''?>>File (zero setup)</option>
+<option value="sqlite" <?=$currentStorage==='sqlite'?'selected':''?>>SQLite (faster queries)</option>
 </select>
 </div>
 
@@ -150,7 +150,7 @@ function serveSettings() {
 <label><input type="checkbox" name="collect_lang" value="1" <?=$collectLang?'checked':''?>> Collect browser language</label>
 </div>
 
-<h4 class="section-heading">Privacy</h4>
+<h4 class="section-heading">Privacy settings</h4>
 
 <div class="form-group">
 <label><input type="checkbox" name="store_subnet" value="1" <?=$storeSubnet?'checked':''?>> Store visitor subnet (e.g. 192.168.1.0/24)</label>
@@ -160,7 +160,7 @@ function serveSettings() {
 <label><input type="checkbox" name="geo_lookup" value="1" <?=$geoLookup?'checked':''?>> Look up geo location from IP (not stored)</label>
 </div>
 
-<h4 class="section-heading">Maintenance</h4>
+<h4 class="section-heading">Auto-cleanup</h4>
 
 <div class="form-group">
 <label for="retention_days">Auto-cleanup (days, 0 = never)</label>
@@ -194,7 +194,7 @@ function serveSettings() {
 </form>
 
 <?php elseif ($totpCanSetup):
-    $issuer = rawurlencode('local-stats');
+    $issuer = rawurlencode('Butler');
     $label = rawurlencode('admin');
     $s = rawurlencode($pendingSecret);
     $otpauth = "otpauth://totp/$issuer:$label?secret=$s&issuer=$issuer";
