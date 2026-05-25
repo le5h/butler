@@ -103,23 +103,11 @@ class FileStorage {
 
     public function updateVisit(string $id, array $data): bool {
         $this->recordsCache = null;
+        $data['id'] = $id;
+        $line = json_encode(array_filter($data, fn($v) => $v !== ''), JSON_UNESCAPED_SLASHES) . "\n";
         $date = date('Y-m-d', (int)substr($id, 0, 10));
         $file = $this->fileFor($date);
         if (!file_exists($file)) return false;
-        $record = null;
-        $fh = fopen($file, 'r');
-        flock($fh, LOCK_SH);
-        while (($line = fgets($fh)) !== false) {
-            $r = json_decode(rtrim($line, "\n"), true);
-            if ($r && ($r['id'] ?? null) === $id) $record = $r;
-        }
-        flock($fh, LOCK_UN);
-        fclose($fh);
-        if (!$record) return false;
-        foreach ($data as $k => $v) {
-            $record[$k] = $v;
-        }
-        $line = json_encode(array_filter($record, fn($v) => $v !== ''), JSON_UNESCAPED_SLASHES) . "\n";
         file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
         return true;
     }
@@ -147,7 +135,9 @@ class FileStorage {
             $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
                 $record = json_decode($line, true);
-                if ($record && !empty($record['id'])) $records[$record['id']] = $record;
+                if ($record && !empty($record['id'])) {
+                    $records[$record['id']] = array_merge($records[$record['id']] ?? [], $record);
+                }
             }
         }
 
