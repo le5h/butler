@@ -46,17 +46,18 @@ The snippet from `?js` is a self-executing IIFE with your collection settings ba
 ### Architecture
 
 ```
-index.php          — router + inline JS/API handlers (hot path)
-lib/storage.php    — Storage interface: FileStorage & SqliteStorage
+index.php          — router + inline JS/API handlers (hot path, on-demand lib loading)
+lib/storage.php    — FileStorage & SqliteStorage, shared stats helpers
 lib/geo.php        — OS detection + IP geo lookup (ip-api.com, cached)
-lib/auth.php       — password + TOTP auth via sessions
-lib/view.php       — dashboard: Chart.js, pagination, export
-lib/settings.php   — admin settings with CSRF protection
-lib/common.php     — shared HTML helpers (head, nav, footer)
+lib/auth.php       — password + TOTP auth via sessions, login form render
+lib/view.php       — dashboard: Chart.js, pagination, export, dashboard render
+lib/settings.php   — admin settings with CSRF protection, settings form render
+lib/test.php       — test page for verifying stats collection, test page render
+lib/common.php     — shared HTML helpers (head, nav, footer, Chart.js)
 style.css          — single shared stylesheet (dark theme)
 config.php         — your settings (gitignored)
 config.example.php — template without secrets
-data/              — visit data (gitignored)
+data/              — visit data + rate-limit counters (gitignored, access denied)
 ```
 
 ### Privacy
@@ -78,6 +79,8 @@ Collected data is minimal and configurable:
 - bcrypt passwords, session-based auth (no secrets in URLs).
 - TOTP two-factor (RFC 6238) with 30s verification window.
 - `htmlspecialchars` on all rendered user data.
+- Library files loaded on-demand per route — the hot path (`?js`, `?api`) loads zero admin code.
+- Data directory protected from direct access via `.htaccess` (Apache).
 
 ### Storage backends
 
