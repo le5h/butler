@@ -184,8 +184,7 @@ function serveSettings()
 <button type="submit" class="btn">Save</button>
 </form>
 
-<hr class="hr-text">
-<h3 class="mb-8">Two-factor authentication</h3>
+<h4 class="section-heading">Two-factor authentication</h4>
 
 <?php if ($totpActive): ?>
 <p class="text-muted mb-8">Two-factor authentication is <strong class="text-green">active</strong>.</p>
