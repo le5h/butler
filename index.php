@@ -96,7 +96,7 @@ if ($routeApi) {
         http_response_code(204);
         return;
     }
-    $method = $_GET['method'] ?? '';
+    $method = $_GET['api'] ?? '';
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     if ($method === 'new') {
         $storage = createStorage($config);
@@ -169,8 +169,8 @@ document.addEventListener('click',t);
 document.addEventListener('keydown',t);
 var b=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
 var d={};S.referrer&&(d.referrer=document.referrer);S.lang&&(d.lang=navigator.language);S.page&&(d.page=location.pathname);
-fetch(b+'?api&method=new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()}).then(function(d){i=d.id})['catch'](function(){});
-function l(){if(!i)return;var e=((Date.now()-s)/1e3).toFixed(1);var d={id:i,duration:e,interactions:c};try{(navigator.sendBeacon||function(u,d){fetch(u,{method:'POST',body:d,keepalive:!0})})(b+'?api&method=update',JSON.stringify(d))}catch(e){}}
+fetch(b+'?api=new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()}).then(function(d){i=d.id})['catch'](function(){});
+function l(){if(!i)return;var e=((Date.now()-s)/1e3).toFixed(1);var d={id:i,duration:e,interactions:c};try{(navigator.sendBeacon||function(u,d){fetch(u,{method:'POST',body:d,keepalive:!0})})(b+'?api=update',JSON.stringify(d))}catch(e){}}
 document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'&&l()});
 window.addEventListener('beforeunload',l);})();
 JS;

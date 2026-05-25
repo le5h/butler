@@ -141,13 +141,13 @@ function serveSettings()
 </select>
 </div>
 
-<div class="form-group form-group-inline mt-4">
+<div class="form-group form-group-inline">
 <label><input type="checkbox" name="collect_page" value="1" <?=$collectPage?'checked':''?>> Collect page URL</label>
 </div>
-<div class="form-group form-group-inline mt-4">
+<div class="form-group form-group-inline">
 <label><input type="checkbox" name="collect_referrer" value="1" <?=$collectReferrer?'checked':''?>> Collect referrer URL</label>
 </div>
-<div class="form-group form-group-inline mt-4">
+<div class="form-group form-group-inline">
 <label><input type="checkbox" name="collect_lang" value="1" <?=$collectLang?'checked':''?>> Collect browser language</label>
 </div>
 

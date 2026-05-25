@@ -1,70 +1,88 @@
 # local-stats
 
-Self-hosted, drop-in PHP analytics for tracking site visitors with zero external dependencies. Collects **aggregate visit stats only** — not designed to identify individual users.
+Self-hosted analytics that respects your visitors. Drop the folder on any PHP server, add one script tag, and get clean visitor stats without selling out your data.
 
-Drop the folder on your server, embed a script tag, and start collecting visitor stats immediately.
+- **Zero dependencies** — no npm, no build step, no database required. Pure PHP.
+- **Privacy-first by default** — aggregates only. No cookies, no tracking IDs, no individual user profiles. Every optional field can be toggled off.
+- **Two storage backends** — flat file (zero setup) or SQLite (faster queries). Switch in settings.
+- **Password + TOTP two-factor auth** — your stats stay yours.
+- **Dark theme dashboard** — Chart.js bar chart, paginated visit table, and CSV/JSON export.
 
-## Routes
+## Why local-stats?
 
-| Route | Description |
-|---|---|
-| `?js` | Returns an async JS tracker. Embed on any page. |
-| `?api&method=new` | Creates a new visit record. Called by the JS tracker on page load. |
-| `?api&method=update` | Updates a visit (duration, interactions). Called on page leave. |
-| `?settings` | Admin page: choose what data to collect, storage backend, password, TOTP auth secret. |
-| `?view` | Stats dashboard with Chart.js bar graph, summary cards, and paginated visit table. Switchable range: day, week, month, all. |
+Google Analytics, Plausible, Fathom — great tools, but they're either a privacy leak, a monthly bill, or a complex self-hosted setup. **local-stats** is a single PHP folder. Upload it, embed a script, done. No accounts, no tracking networks, no JavaScript framework.
 
-## How the JS tracker works
+## How to use
 
-The JS snippet returned by `?js` is a self-executing IIFE with collection settings **inlined** by the server at generation time. Only fields enabled in `?settings` are sent.
-
-1. **Reads settings** — uses the inlined `S` object to know which fields to send.
-2. **On page load** — sends a POST to `?api&method=new` with enabled fields (page, referrer, language). The server returns a unique visit ID.
-3. **During the session** — counts click and keydown events as interactions.
-4. **On page leave** (`beforeunload` / `visibilitychange`) — sends a POST to `?api&method=update` with the visit ID, elapsed duration (seconds), and interaction count. Uses `navigator.sendBeacon` when available.
-
-## Embed example
-
-Include the script on any page you want to track:
+Upload the folder to your server and embed the tracker on any page:
 
 ```html
 <script src="https://your-domain.com/stats/?js" async></script>
 ```
 
-The script auto-detects its own URL via `document.currentScript`, so it works from any path.
+The script auto-detects its own URL via `document.currentScript` — it works from any path.
 
-## Architecture
+### Routes
+
+| Route | What it does |
+|---|---|
+| `?js` | Returns the async JS tracker. Embed on the pages you want to monitor. |
+| `?view` | Stats dashboard: bar chart, summary cards, paginated visits, CSV/JSON export. |
+| `?settings` | Admin panel: data toggles, storage backend, password, TOTP, retention. |
+| `?api=new` | Creates a visit record (POST). Called by the tracker on page load. |
+| `?api=update` | Updates a visit (POST). Called by the tracker on page leave. |
+| `?logout` | Ends your admin session. |
+
+The first time you visit `?settings`, a `config.php` is created from the example template. Set a password and you're ready.
+
+## How it works
+
+### JS tracker
+
+The snippet from `?js` is a self-executing IIFE with your collection settings baked in at generation time. On page load it POSTs to `?api=new` with enabled fields (page, referrer, language). The server returns a visit ID. On page leave (`beforeunload` / `visibilitychange`) it POSTs the ID with elapsed duration and interaction count via `navigator.sendBeacon`.
+
+### Architecture
 
 ```
-index.php          — lean router + inline JS/API handlers (hot path)
-lib/storage.php    — FileStorage & SqliteStorage backends
-lib/geo.php        — OS detection + IP geo lookup helpers
-lib/auth.php       — password auth (loaded on demand)
-lib/view.php       — stats dashboard (loaded on demand)
-lib/settings.php    — admin settings page (loaded on demand)
-config.php         — persistent settings (password, storage, auth_secret)
-data/              — runtime data (gitignored)
+index.php          — router + inline JS/API handlers (hot path)
+lib/storage.php    — Storage interface: FileStorage & SqliteStorage
+lib/geo.php        — OS detection + IP geo lookup (ip-api.com, cached)
+lib/auth.php       — password + TOTP auth via sessions
+lib/view.php       — dashboard: Chart.js, pagination, export
+lib/settings.php   — admin settings with CSRF protection
+lib/common.php     — shared HTML helpers (head, nav, footer)
+style.css          — single shared stylesheet (dark theme)
+config.php         — your settings (gitignored)
+config.example.php — template without secrets
+data/              — visit data (gitignored)
 ```
 
-## Privacy
+### Privacy
 
-This tool is designed for **aggregate analytics**, not user tracking. Collected data is minimal:
+Collected data is minimal and configurable:
 
-| Data point | Stored by default | Notes |
-|---|---|---|---|
-| Visit duration, interaction count | Yes | Always collected |
-| Page URL, referrer, language | Yes (each toggleable) | Toggle individually in `?setup` |
-| Subnet (e.g. 192.168.1.0/24) | **No** (opt-in) | Cannot identify individual users |
-| Geo location (from IP) | **No** (opt-in) | Looked up at request time, IP never stored |
+| Data point | Default | Notes |
+|---|---|---|
+| Visit duration, interactions | Always on | Needed for basic stats |
+| Page URL, referrer, language | On (toggleable) | Disable any in `?settings` |
+| Operating system | Always on | From User-Agent header |
+| Subnet (e.g. 192.168.1.0/24) | Off (opt-in) | Cannot identify individuals |
+| Geo location | Off (opt-in) | Looked up live, IP never stored |
 
-Every data point except visit ID, timestamp, duration, and interactions can be disabled in `?settings`.
+### Security
 
-## Storage
+- Rate-limited to 120 requests/hour per IP on the API.
+- CSRF tokens on all state-changing POSTs.
+- bcrypt passwords, session-based auth (no secrets in URLs).
+- TOTP two-factor (RFC 6238) with 30s verification window.
+- `htmlspecialchars` on all rendered user data.
 
-- **File** — appends JSON lines per day (`data/YYYY-MM-DD.txt`). Simple, no database needed.
-- **SQLite** — uses PDO/SQLite with aggregated queries for faster stats. Recommended for production.
+### Storage backends
 
-Set the backend and data collection options in `?settings`.
+- **File** — one JSON-lines file per day (`data/YYYY-MM-DD.txt`). No setup, great for low traffic.
+- **SQLite** — PDO/SQLite with server-side aggregation. Better for production.
+
+Switch between them in `?settings`. Auto-cleanup of old records is configurable.
 
 ---
 

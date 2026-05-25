@@ -49,8 +49,8 @@ tr:hover td{background:#1e1f27}
 .pagination a.disabled{opacity:.3;pointer-events:none}
 
 /* Forms */
-.form-group{margin-bottom:18px}
-.form-group label{display:block;font-weight:600;margin-bottom:6px;font-size:.85rem;color:#c4c5c9}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-weight:600;margin-bottom:4px;font-size:.85rem;color:#c4c5c9}
 .form-group-inline{display:flex;align-items:center;gap:8px}
 .form-group-inline label{font-weight:400;font-size:.85rem;color:#b0b2b8;display:inline}
 select,input[type=password],input[type=number],input[type=text]{width:100%;padding:11px 13px;background:#0e0f14;border:1px solid #2a2b33;border-radius:8px;font-size:.92rem;color:#ecedee;outline:none;transition:border-color .15s}
@@ -99,6 +99,6 @@ hr{border:none;border-top:1px solid #2a2b33;margin:20px 0}
 
 /* Settings extras */
 .section-heading{font-size:.75rem;font-weight:700;color:#6b6d77;text-transform:uppercase;letter-spacing:.06em;margin-top:24px;margin-bottom:12px}
-.section-heading:first-of-type{margin-top:0}
+form .section-heading:first-of-type{margin-top:0}
 a{color:#818cf8;text-decoration:none}
 a:hover{color:#a78bfa}
