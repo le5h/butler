@@ -122,16 +122,17 @@ a{color:#0066cc}
 
 <?php if ($secret): ?>
 <hr style="margin:20px 0;border:none;border-top:1px solid #eee">
-<h3 style="font-size:1rem;margin-bottom:8px">Auth Secret</h3>
-<p style="font-size:.85rem;color:#666;margin-bottom:8px">Use this secret with authenticator apps (TOTP):</p>
-<div class="secret"><?=htmlspecialchars($secret)?></div>
+<h3 style="font-size:1rem;margin-bottom:8px">Authenticator App (TOTP)</h3>
+<p style="font-size:.85rem;color:#666;margin-bottom:8px">Secret key — enter this manually in your authenticator app:</p>
+<div class="secret" style="user-select:all"><?=htmlspecialchars($secret)?></div>
 <?php
 $issuer = rawurlencode('local-stats');
 $label = rawurlencode('admin');
 $s = rawurlencode($secret);
 $otpauth = "otpauth://totp/$issuer:$label?secret=$s&issuer=$issuer";
 ?>
-<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=<?=rawurlencode($otpauth)?>" alt="QR Code for authenticator app" style="max-width:200px;border-radius:4px">
+<p style="font-size:.85rem;color:#666;margin-top:12px">Or use this URI with any QR generator you trust:</p>
+<div class="secret" style="font-size:.8rem;word-break:break-all;user-select:all"><?=htmlspecialchars($otpauth)?></div>
 <?php endif; ?>
 </div>
 
