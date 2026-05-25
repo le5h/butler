@@ -24,9 +24,6 @@ function serveSettings()
             if ($pwd !== '') {
                 $config['password'] = password_hash($pwd, PASSWORD_BCRYPT);
             }
-            if (empty($config['auth_secret'])) {
-                $config['auth_secret'] = strtoupper(bin2hex(random_bytes(10)));
-            }
             $written = file_put_contents(
                 $configFile,
                 '<?php' . "\n\nreturn " . var_export($config, true) . ";\n",
@@ -47,7 +44,6 @@ function serveSettings()
     $collectReferrer = !empty($config['collect_referrer']);
     $collectLang = !empty($config['collect_lang']);
     $collectPage = !empty($config['collect_page']);
-    $secret = $config['auth_secret'];
 
     header('Content-Type: text/html; charset=utf-8');
     ?>
@@ -119,21 +115,6 @@ a{color:#0066cc}
 
 <button type="submit" class="btn">Save</button>
 </form>
-
-<?php if ($secret): ?>
-<hr style="margin:20px 0;border:none;border-top:1px solid #eee">
-<h3 style="font-size:1rem;margin-bottom:8px">Authenticator App (TOTP)</h3>
-<p style="font-size:.85rem;color:#666;margin-bottom:8px">Secret key — enter this manually in your authenticator app:</p>
-<div class="secret" style="user-select:all"><?=htmlspecialchars($secret)?></div>
-<?php
-$issuer = rawurlencode('local-stats');
-$label = rawurlencode('admin');
-$s = rawurlencode($secret);
-$otpauth = "otpauth://totp/$issuer:$label?secret=$s&issuer=$issuer";
-?>
-<p style="font-size:.85rem;color:#666;margin-top:12px">Or use this URI with any QR generator you trust:</p>
-<div class="secret" style="font-size:.8rem;word-break:break-all;user-select:all"><?=htmlspecialchars($otpauth)?></div>
-<?php endif; ?>
 </div>
 
 <footer><a href="?view">View stats</a> &middot; local-stats</footer>

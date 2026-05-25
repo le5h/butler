@@ -3,7 +3,7 @@
 $configFile = __DIR__ . '/config.php';
 $config = file_exists($configFile) ? require $configFile : [];
 $config = array_merge([
-    'password' => '', 'storage' => 'file', 'auth_secret' => '',
+    'password' => '', 'storage' => 'file',
     'store_ip' => false, 'geo_lookup' => false,
     'collect_referrer' => true, 'collect_lang' => true, 'collect_page' => true,
 ], $config);

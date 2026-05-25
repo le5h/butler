@@ -11,7 +11,7 @@ Drop the folder on your server, embed a script tag, and start collecting visitor
 | `?js` | Returns an async JS tracker. Embed on any page. |
 | `?api&method=new` | Creates a new visit record. Called by the JS tracker on page load. |
 | `?api&method=update` | Updates a visit (duration, interactions). Called on page leave. |
-| `?settings` | Admin page: choose what data to collect, storage backend, password, TOTP auth secret. |
+| `?settings` | Admin page: choose what data to collect, storage backend, password. |
 | `?view` | Stats dashboard with Chart.js bar graph, summary cards, and paginated visit table. Switchable range: day, week, month, all. |
 
 ## How the JS tracker works
@@ -42,7 +42,7 @@ lib/geo.php        — OS detection + IP geo lookup helpers
 lib/auth.php       — password auth (loaded on demand)
 lib/view.php       — stats dashboard (loaded on demand)
 lib/settings.php    — admin settings page (loaded on demand)
-config.php         — persistent settings (password, storage, auth_secret)
+config.php         — persistent settings
 data/              — runtime data (gitignored)
 ```
 
