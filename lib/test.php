@@ -80,13 +80,15 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
   if (flags.lang) data.lang = navigator.language;
   if (flags.page) data.page = location.pathname;
 
-  fetch(base + '?api=new', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  .then(function(r){ return r.json() })
-  .then(function(d){
+  function api(method, body) {
+    return fetch(base + '?api=' + method, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function(r){ return r.json() });
+  }
+
+  api('new', data).then(function(d){
     visitId = d.id;
     el.id.textContent = d.id;
     el.update.textContent = 'ready';
@@ -100,11 +102,7 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
   function send() {
     if (!visitId || send.s) return; send.s = 1;
     const sec = ((Date.now() - start) / 1e3).toFixed(1);
-    fetch(base + '?api=update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: visitId, duration: sec, interactions: clicks })
-    });
+    api('update', { id: visitId, duration: sec, interactions: clicks });
   }
 
   document.addEventListener('visibilitychange', function(){
@@ -120,17 +118,11 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
     }
 
     const sec = ((Date.now() - start) / 1e3).toFixed(1);
-    const body = JSON.stringify({ id: visitId, duration: sec, interactions: clicks });
 
     el.update.textContent = 'sending...';
     el.update.className = 'test-val';
 
-    fetch(base + '?api=update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: body
-    })
-    .then(function(r){ return r.json() })
+    api('update', { id: visitId, duration: sec, interactions: clicks })
     .then(function(d){
       el.update.textContent = d.ok ? 'sent OK' : 'failed';
       el.update.className = 'test-val ' + (d.ok ? 'test-ok' : 'test-err');
