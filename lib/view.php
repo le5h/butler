@@ -18,66 +18,8 @@ function butlerReport(array $stats, string $range): string {
     return "$m.";
 }
 
-function serveView() {
-    global $config;
-    if (!checkAuth('view')) return;
-
-    $storage = createStorage($config);
-    if ($config['retention_days'] > 0) {
-        $storage->cleanup($config['retention_days']);
-    }
-    $range = $_GET['range'] ?? 'day';
-    $page = max(1, (int)($_GET['page'] ?? 1));
-    $perPage = 20;
-
-    $export = $_GET['export'] ?? '';
-    if ($export === 'csv' || $export === 'json') {
-        $visits = $storage->getVisits($range, 1, 999999);
-        if ($export === 'json') {
-            header('Content-Type: application/json; charset=utf-8');
-            header('Content-Disposition: attachment; filename="stats-' . $range . '-' . date('Y-m-d') . '.json"');
-            echo json_encode($visits, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        } else {
-            header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="stats-' . $range . '-' . date('Y-m-d') . '.csv"');
-            $out = fopen('php://output', 'w');
-            fputcsv($out, ['ID', 'Timestamp', 'Duration', 'Interactions', 'Language', 'IP', 'Location', 'OS', 'Referrer', 'Page'], ',', '"', '');
-            foreach ($visits as $v) {
-                fputcsv($out, [
-                    $v['id'] ?? '',
-                    date('Y-m-d H:i:s', $v['timestamp'] ?? 0),
-                    $v['duration'] ?? '',
-                    $v['interactions'] ?? '',
-                    $v['lang'] ?? '',
-                    $v['ip'] ?? '',
-                    $v['geo'] ?? '',
-                    $v['os'] ?? '',
-                    $v['referrer'] ?? '',
-                    $v['page'] ?? '',
-                ], ',', '"', '');
-            }
-            fclose($out);
-        }
-        return;
-    }
-
-    $total = $storage->getVisitCount($range);
-    $stats = $storage->getStats($range);
-    $visits = $storage->getVisits($range, $page, $perPage);
-    $totalPages = max(1, (int)ceil($total / $perPage));
-    $chartData = $storage->getAggregatedStats($range);
-
-    $queryBase = "?view&range=$range";
-
-    $report = butlerReport($stats, $range);
-
-    require_once __DIR__ . '/common.php';
-    header('Content-Type: text/html; charset=utf-8');
-    renderHead("Stats - $range");
-    renderChartJs();
-    renderTop('view');
+function renderViewDashboard(string $report, string $range, array $stats, array $chartData, array $visits, int $page, int $totalPages, string $queryBase): void {
 ?>
-
 <nav class="range-nav">
 <?php foreach (['day','week','month','all'] as $r):
     $active = $r === $range ? ' active' : ''; ?>
@@ -190,7 +132,67 @@ var chart = new Chart(ctx, {
 });
 window.addEventListener('resize', function(){ chart.resize(); });
 </script>
-
 <?php
+}
+
+function serveView() {
+    global $config;
+    if (!checkAuth('view')) return;
+
+    $storage = createStorage($config);
+    if ($config['retention_days'] > 0) {
+        $storage->cleanup($config['retention_days']);
+    }
+    $range = $_GET['range'] ?? 'day';
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $perPage = 20;
+
+    $export = $_GET['export'] ?? '';
+    if ($export === 'csv' || $export === 'json') {
+        $visits = $storage->getVisits($range, 1, 999999);
+        if ($export === 'json') {
+            header('Content-Type: application/json; charset=utf-8');
+            header('Content-Disposition: attachment; filename="stats-' . $range . '-' . date('Y-m-d') . '.json"');
+            echo json_encode($visits, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        } else {
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="stats-' . $range . '-' . date('Y-m-d') . '.csv"');
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['ID', 'Timestamp', 'Duration', 'Interactions', 'Language', 'IP', 'Location', 'OS', 'Referrer', 'Page'], ',', '"', '');
+            foreach ($visits as $v) {
+                fputcsv($out, [
+                    $v['id'] ?? '',
+                    date('Y-m-d H:i:s', $v['timestamp'] ?? 0),
+                    $v['duration'] ?? '',
+                    $v['interactions'] ?? '',
+                    $v['lang'] ?? '',
+                    $v['ip'] ?? '',
+                    $v['geo'] ?? '',
+                    $v['os'] ?? '',
+                    $v['referrer'] ?? '',
+                    $v['page'] ?? '',
+                ], ',', '"', '');
+            }
+            fclose($out);
+        }
+        return;
+    }
+
+    $total = $storage->getVisitCount($range);
+    $stats = $storage->getStats($range);
+    $visits = $storage->getVisits($range, $page, $perPage);
+    $totalPages = max(1, (int)ceil($total / $perPage));
+    $chartData = $storage->getAggregatedStats($range);
+
+    $queryBase = "?view&range=$range";
+
+    $report = butlerReport($stats, $range);
+
+    require_once __DIR__ . '/common.php';
+    header('Content-Type: text/html; charset=utf-8');
+    renderHead("Stats - $range");
+    renderChartJs();
+    renderTop('view');
+    renderViewDashboard($report, $range, $stats, $chartData, $visits, $page, $totalPages, $queryBase);
     renderFooter();
 }

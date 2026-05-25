@@ -1,19 +1,7 @@
 <?php
 
-function serveTest() {
-    $scriptName = $_SERVER['SCRIPT_NAME'];
-    require_once __DIR__ . '/common.php';
-    header('Content-Type: text/html; charset=utf-8');
-    renderHead('Test');
-    renderTop('test');
-
-    $collectFlags = json_encode([
-        'referrer' => (bool)$GLOBALS['config']['collect_referrer'],
-        'lang' => (bool)$GLOBALS['config']['collect_lang'],
-        'page' => (bool)$GLOBALS['config']['collect_page'],
-    ]);
+function renderTestPage(string $scriptName, string $collectFlags): void {
 ?>
-
 <div class="container-narrow">
 
 <div class="card">
@@ -82,10 +70,11 @@ function serveTest() {
 
   setInterval(tick, 1000);
 
+  var flags = <?=$collectFlags?>;
   var d = {};
-  <?php if ($GLOBALS['config']['collect_referrer']): ?>d.referrer = document.referrer;<?php endif; ?>
-  <?php if ($GLOBALS['config']['collect_lang']): ?>d.lang = navigator.language;<?php endif; ?>
-  <?php if ($GLOBALS['config']['collect_page']): ?>d.page = location.pathname;<?php endif; ?>
+  if (flags.referrer) d.referrer = document.referrer;
+  if (flags.lang) d.lang = navigator.language;
+  if (flags.page) d.page = location.pathname;
 
   fetch(base + '?api=new', {
     method: 'POST',
@@ -151,7 +140,20 @@ function serveTest() {
   });
 })();
 </script>
-
 <?php
+}
+
+function serveTest() {
+    $scriptName = $_SERVER['SCRIPT_NAME'];
+    $collectFlags = json_encode([
+        'referrer' => (bool)$GLOBALS['config']['collect_referrer'],
+        'lang' => (bool)$GLOBALS['config']['collect_lang'],
+        'page' => (bool)$GLOBALS['config']['collect_page'],
+    ]);
+    require_once __DIR__ . '/common.php';
+    header('Content-Type: text/html; charset=utf-8');
+    renderHead('Test');
+    renderTop('test');
+    renderTestPage($scriptName, $collectFlags);
     renderFooter();
 }
