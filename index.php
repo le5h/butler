@@ -42,6 +42,7 @@ if ($routeJs) {
 function t(){c++}
 document.addEventListener('click',t);
 document.addEventListener('keydown',t);
+var st=0;document.addEventListener('scroll',function(){var n=Date.now();if(n-st>300){c++;st=n}});
 var b=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
 var d={};S.referrer&&(d.referrer=document.referrer);S.lang&&(d.lang=navigator.language);S.page&&(d.page=location.pathname);
 fetch(b+'?api=new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()}).then(function(d){i=d.id})['catch'](function(){});
