@@ -1,9 +1,9 @@
 <?php
 
-function serveSetup()
+function serveSettings()
 {
     global $config, $configFile;
-    if (!empty($config['password']) && !checkAuth('setup')) return;
+    if (!empty($config['password']) && !checkAuth('settings')) return;
 
     $message = '';
     $error = '';
@@ -56,7 +56,7 @@ function serveSetup()
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Setup - local-stats</title>
+<title>Settings - local-stats</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;color:#333;padding:40px;max-width:600px;margin:0 auto}
@@ -77,7 +77,7 @@ a{color:#0066cc}
 </head>
 <body>
 
-<h1>Setup</h1>
+<h1>Settings</h1>
 
 <div class="card">
 <?php if ($message): ?><div class="msg ok"><?=htmlspecialchars($message)?></div><?php endif; ?>

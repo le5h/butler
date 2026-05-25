@@ -14,22 +14,7 @@ require_once __DIR__ . '/lib/geo.php';
 $routeJs = isset($_GET['js']);
 $routeApi = isset($_GET['api']);
 $routeView = isset($_GET['view']);
-$routeSetup = isset($_GET['setup']);
 $routeSettings = isset($_GET['settings']);
-
-if ($routeSettings) {
-    header('Content-Type: application/json; charset=utf-8');
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Headers: Content-Type');
-    echo json_encode([
-        'collect' => [
-            'referrer' => (bool)$config['collect_referrer'],
-            'lang' => (bool)$config['collect_lang'],
-            'page' => (bool)$config['collect_page'],
-        ]
-    ]);
-    return;
-}
 
 if ($routeApi) {
     header('Content-Type: application/json; charset=utf-8');
@@ -87,10 +72,10 @@ if ($routeView) {
     return;
 }
 
-if ($routeSetup) {
+if ($routeSettings) {
     require_once __DIR__ . '/lib/auth.php';
-    require_once __DIR__ . '/lib/setup.php';
-    serveSetup();
+    require_once __DIR__ . '/lib/settings.php';
+    serveSettings();
     return;
 }
 
@@ -119,4 +104,4 @@ JS;
 }
 
 header('Content-Type: text/html; charset=utf-8');
-echo '<h1>local-stats</h1><p>Use <a href="?setup">?setup</a> to configure or <a href="?view">?view</a> to see stats.</p>';
+echo '<h1>local-stats</h1><p>Use <a href="?settings">?settings</a> to configure or <a href="?view">?view</a> to see stats.</p>';
