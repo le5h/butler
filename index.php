@@ -46,8 +46,9 @@ var st=0;document.addEventListener('scroll',function(){var n=Date.now();if(n-st>
 var b=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
 var d={};S.referrer&&(d.referrer=document.referrer);S.lang&&(d.lang=navigator.language);S.page&&(d.page=location.pathname);
 fetch(b+'?api=new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()}).then(function(d){i=d.id})['catch'](function(){});
-function l(){if(!i)return;var e=((Date.now()-s)/1e3).toFixed(1);var d={id:i,duration:e,interactions:c};try{(navigator.sendBeacon||function(u,d){fetch(u,{method:'POST',body:d,keepalive:!0})})(b+'?api=update',JSON.stringify(d))}catch(e){}}
-document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'&&l()});})();
+function l(){if(!i||l.s)return;l.s=1;var e=((Date.now()-s)/1e3).toFixed(1);var d={id:i,duration:e,interactions:c};try{(navigator.sendBeacon||function(u,d){fetch(u,{method:'POST',body:d,keepalive:!0})})(b+'?api=update',JSON.stringify(d))}catch(e){}}
+document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'?l():l.s=0});
+window.addEventListener('beforeunload',l);})();
 JS;
     return;
 }

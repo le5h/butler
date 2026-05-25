@@ -95,7 +95,8 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
   });
 
   function send() {
-    if (!visitId) return;
+    if (!visitId || send.s) return; send.s = 1;
+    var duration = ((Date.now() - start) / 1e3).toFixed(1);
     var duration = ((Date.now() - start) / 1e3).toFixed(1);
     fetch(base + '?api=update', {
       method: 'POST',
@@ -105,8 +106,9 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
   }
 
   document.addEventListener('visibilitychange', function(){
-    if (document.visibilityState === 'hidden') send();
+    if (document.visibilityState === 'hidden') send(); else send.s = 0;
   });
+  window.addEventListener('beforeunload', send);
 
   document.getElementById('btn-update').addEventListener('click', function(){
     if (!visitId) {
