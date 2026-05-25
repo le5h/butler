@@ -51,11 +51,11 @@ data/              — runtime data (gitignored)
 This tool is designed for **aggregate analytics**, not user tracking. Collected data is minimal:
 
 | Data point | Stored by default | Notes |
-|---|---|---|
+|---|---|---|---|
 | Visit duration, interaction count | Yes | Always collected |
 | Page URL, referrer, language | Yes (each toggleable) | Toggle individually in `?setup` |
-| IP address | **No** (opt-in) | Toggle in `?settings` |
-| Geo location (from IP) | **No** (opt-in) | Requires IP storage |
+| Subnet (e.g. 192.168.1.0/24) | **No** (opt-in) | Cannot identify individual users |
+| Geo location (from IP) | **No** (opt-in) | Looked up at request time, IP never stored |
 
 Every data point except visit ID, timestamp, duration, and interactions can be disabled in `?settings`.
 

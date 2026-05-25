@@ -8,7 +8,7 @@ if (!file_exists($configFile) && file_exists($configExample)) {
 $config = file_exists($configFile) ? require $configFile : [];
 $config = array_merge([
     'password' => '', 'storage' => 'file', 'auth_secret' => '',
-    'store_ip' => false, 'geo_lookup' => false,
+    'store_subnet' => false, 'geo_lookup' => false,
     'collect_referrer' => true, 'collect_lang' => true, 'collect_page' => true,
     'retention_days' => 0,
 ], $config);
@@ -106,11 +106,11 @@ if ($routeApi) {
         if ($config['collect_lang']) $data['lang'] = $input['lang'] ?? '';
         if ($config['collect_referrer']) $data['referrer'] = $input['referrer'] ?? '';
         if ($config['collect_page']) $data['page'] = $input['page'] ?? '';
-        if ($config['store_ip']) {
-            $data['ip'] = $ip;
-            if ($config['geo_lookup'] && $ip) {
-                $data['geo'] = geoLookup($ip);
-            }
+        if ($config['store_subnet']) {
+            $data['ip'] = subnetAddress($ip);
+        }
+        if ($config['geo_lookup']) {
+            $data['geo'] = geoLookup($ip);
         }
         $id = $storage->newVisit($data);
         echo json_encode(['id' => $id]);

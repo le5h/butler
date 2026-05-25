@@ -31,5 +31,19 @@ function geoLookup($ip)
             return $cache[$ip] = $data['country'];
         }
     }
-    return $cache[$ip] = $ip;
+    return $cache[$ip] = '';
+}
+
+function subnetAddress($ip)
+{
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        $parts = explode('.', $ip);
+        return $parts[0] . '.' . $parts[1] . '.' . $parts[2] . '.0/24';
+    }
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        $parts = explode(':', $ip);
+        $hextets = array_slice($parts, 0, 4);
+        return implode(':', $hextets) . '::/64';
+    }
+    return '';
 }

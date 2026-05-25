@@ -4,7 +4,7 @@ return [
     'password' => '',
     'storage' => 'file',
     'auth_secret' => '',
-    'store_ip' => false,
+    'store_subnet' => false,
     'geo_lookup' => false,
     'collect_referrer' => true,
     'collect_lang' => true,

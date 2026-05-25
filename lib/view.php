@@ -80,7 +80,7 @@ function serveView()
 <div class="table-wrap">
 <table>
 <thead><tr>
-<th>ID</th><th>Time</th><th>Duration</th><th>Interactions</th><th>Language</th><th>IP</th><th>Location</th><th>OS</th><th>Page</th>
+<th>ID</th><th>Time</th><th>Duration</th><th>Interactions</th><th>Language</th><th>Subnet</th><th>Location</th><th>OS</th><th>Page</th>
 </tr></thead>
 <tbody>
 <?php foreach ($visits as $v):

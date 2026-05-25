@@ -73,7 +73,7 @@ function serveSettings()
                 $error = 'Current password is incorrect.';
             } else {
                 $config['storage'] = $storage;
-                $config['store_ip'] = !empty($_POST['store_ip']);
+                $config['store_subnet'] = !empty($_POST['store_subnet']);
                 $config['geo_lookup'] = !empty($_POST['geo_lookup']);
                 $config['collect_referrer'] = !empty($_POST['collect_referrer']);
                 $config['collect_lang'] = !empty($_POST['collect_lang']);
@@ -102,7 +102,7 @@ function serveSettings()
 
     $hasPassword = $config['password'] !== '';
     $currentStorage = $config['storage'];
-    $storeIp = !empty($config['store_ip']);
+    $storeSubnet = !empty($config['store_subnet']);
     $geoLookup = !empty($config['geo_lookup']);
     $collectReferrer = !empty($config['collect_referrer']);
     $collectLang = !empty($config['collect_lang']);
@@ -152,11 +152,11 @@ function serveSettings()
 <hr>
 
 <div class="form-group">
-<label><input type="checkbox" name="store_ip" value="1" <?=$storeIp?'checked':''?>> Store visitor IP address</label>
+<label><input type="checkbox" name="store_subnet" value="1" <?=$storeSubnet?'checked':''?>> Store visitor subnet (e.g. 192.168.1.0/24)</label>
 </div>
 
 <div class="form-group">
-<label><input type="checkbox" name="geo_lookup" value="1" <?=$geoLookup?'checked':''?>> Look up geo location from IP (requires IP storage)</label>
+<label><input type="checkbox" name="geo_lookup" value="1" <?=$geoLookup?'checked':''?>> Look up geo location from IP (not stored)</label>
 </div>
 
 <hr>
