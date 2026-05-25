@@ -21,14 +21,13 @@ function renderTop(string $active): void
         'settings' => ['Settings', '?settings'],
         'logout' => ['Logout', '?logout'],
     ];
+    $visible = array_filter($links, fn($k) => $k !== $active, ARRAY_FILTER_USE_KEY);
+    $navLinks = array_map(fn($l, $u) => '<a href="' . $u . '">' . $l . '</a>', array_column($visible, 0), array_column($visible, 1));
     ?>
 <div class="container">
 <div class="top">
 <h1>local-stats</h1>
-<?php foreach ($links as $key => [$label, $url]):
-    if ($key === $active) continue; ?>
-<a href="<?=$url?>"><?=$label?></a><span class="spacer">&middot;</span>
-<?php endforeach; ?>
+<?=implode('<span class="spacer">&middot;</span>', $navLinks)?>
 </div>
 <?php
 }

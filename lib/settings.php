@@ -130,7 +130,7 @@ function serveSettings()
 
 <?php if ($secret): ?>
 <hr class="hr-text">
-<h3 style="font-size:1rem" class="mb-8">Authenticator App (TOTP)</h3>
+<h3 class="mb-8">Authenticator App (TOTP)</h3>
 <p class="text-muted mb-8">Secret key — enter this manually in your authenticator app (e.g. Google Authenticator, Authy):</p>
 <div class="secret select-all"><?=htmlspecialchars($secret)?></div>
 <?php
