@@ -65,3 +65,7 @@ Every data point except visit ID, timestamp, duration, and interactions can be d
 - **SQLite** — uses PDO/SQLite with aggregated queries for faster stats. Recommended for production.
 
 Set the backend and data collection options in `?settings`.
+
+---
+
+Built with [OpenCode](https://opencode.ai).
