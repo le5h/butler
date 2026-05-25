@@ -21,8 +21,6 @@ function serveView()
     $queryBase = "?view&range=$range";
     if ($pwd) $queryBase .= "&pwd=$pwd";
 
-    $geoCache = [];
-
     header('Content-Type: text/html; charset=utf-8');
     ?>
 <!DOCTYPE html>
@@ -77,7 +75,7 @@ footer{margin-top:32px;font-size:.8rem;color:#999;text-align:center}
 
 <table>
 <thead><tr>
-<th>ID</th><th>Time</th><th>Duration</th><th>Interactions</th><th>Language</th><th>Location</th><th>OS</th><th>Page</th>
+<th>ID</th><th>Time</th><th>Duration</th><th>Interactions</th><th>Language</th><th>IP</th><th>Location</th><th>OS</th><th>Page</th>
 </tr></thead>
 <tbody>
 <?php foreach ($visits as $v):
@@ -85,18 +83,15 @@ footer{margin-top:32px;font-size:.8rem;color:#999;text-align:center}
     $dur = isset($v['duration']) ? round($v['duration'], 1) . 's' : '-';
     $intr = $v['interactions'] ?? 0;
     $lang = htmlspecialchars($v['lang'] ?? '-');
-    $ip = $v['ip'] ?? '';
-    if ($ip && !isset($geoCache[$ip])) {
-        $geoCache[$ip] = geoLookup($ip);
-    }
-    $loc = htmlspecialchars($geoCache[$ip] ?? '-');
+    $ip = htmlspecialchars($v['ip'] ?? '-');
+    $geo = htmlspecialchars($v['geo'] ?? '-');
     $os = htmlspecialchars($v['os'] ?? '-');
     $page = htmlspecialchars($v['page'] ?? '-');
     $id = htmlspecialchars(substr($v['id'] ?? '', 0, 8));
 ?>
-<tr><td title="<?=htmlspecialchars($v['id']??'')?>"><?=$id?></td><td><?=$time?></td><td><?=$dur?></td><td><?=$intr?></td><td><?=$lang?></td><td><?=$loc?></td><td><?=$os?></td><td><?=$page?></td></tr>
+<tr><td title="<?=htmlspecialchars($v['id']??'')?>"><?=$id?></td><td><?=$time?></td><td><?=$dur?></td><td><?=$intr?></td><td><?=$lang?></td><td><?=$ip?></td><td><?=$geo?></td><td><?=$os?></td><td><?=$page?></td></tr>
 <?php endforeach; ?>
-<?php if (empty($visits)): ?><tr><td colspan="8" style="text-align:center;color:#999;padding:32px">No visits yet</td></tr><?php endif; ?>
+<?php if (empty($visits)): ?><tr><td colspan="9" style="text-align:center;color:#999;padding:32px">No visits yet</td></tr><?php endif; ?>
 </tbody>
 </table>
 

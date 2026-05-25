@@ -16,6 +16,8 @@ function serveSetup()
             $error = 'Invalid storage type.';
         } else {
             $config['storage'] = $storage;
+            $config['store_ip'] = !empty($_POST['store_ip']);
+            $config['geo_lookup'] = !empty($_POST['geo_lookup']);
             if ($pwd !== '') {
                 $config['password'] = password_hash($pwd, PASSWORD_BCRYPT);
             }
@@ -37,6 +39,8 @@ function serveSetup()
 
     $hasPassword = $config['password'] !== '';
     $currentStorage = $config['storage'];
+    $storeIp = !empty($config['store_ip']);
+    $geoLookup = !empty($config['geo_lookup']);
     $secret = $config['auth_secret'];
 
     header('Content-Type: text/html; charset=utf-8');
@@ -80,6 +84,14 @@ a{color:#0066cc}
 <option value="file" <?=$currentStorage==='file'?'selected':''?>>File (date.txt)</option>
 <option value="sqlite" <?=$currentStorage==='sqlite'?'selected':''?>>SQLite</option>
 </select>
+</div>
+
+<div class="form-group">
+<label><input type="checkbox" name="store_ip" value="1" <?=$storeIp?'checked':''?>> Store visitor IP address</label>
+</div>
+
+<div class="form-group">
+<label><input type="checkbox" name="geo_lookup" value="1" <?=$geoLookup?'checked':''?>> Look up geo location from IP (requires IP storage)</label>
 </div>
 
 <div class="form-group">

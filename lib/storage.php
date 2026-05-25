@@ -234,23 +234,29 @@ class SqliteStorage extends Storage
             interactions INTEGER DEFAULT 0,
             lang TEXT DEFAULT '',
             ip TEXT DEFAULT '',
+            geo TEXT DEFAULT '',
             os TEXT DEFAULT '',
             referrer TEXT DEFAULT '',
             screen TEXT DEFAULT '',
             page TEXT DEFAULT ''
         )");
+        try {
+            $this->pdo->exec("ALTER TABLE visits ADD COLUMN geo TEXT DEFAULT ''");
+        } catch (\PDOException $e) {
+        }
     }
 
     public function newVisit(array $data): string
     {
         $id = str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
-        $stmt = $this->pdo->prepare("INSERT INTO visits (id, timestamp, lang, ip, os, referrer, screen, page)
-            VALUES (:id, :timestamp, :lang, :ip, :os, :referrer, :screen, :page)");
+        $stmt = $this->pdo->prepare("INSERT INTO visits (id, timestamp, lang, ip, geo, os, referrer, screen, page)
+            VALUES (:id, :timestamp, :lang, :ip, :geo, :os, :referrer, :screen, :page)");
         $stmt->execute([
             ':id' => $id,
             ':timestamp' => time(),
             ':lang' => $data['lang'] ?? '',
             ':ip' => $data['ip'] ?? '',
+            ':geo' => $data['geo'] ?? '',
             ':os' => $data['os'] ?? '',
             ':referrer' => $data['referrer'] ?? '',
             ':screen' => $data['screen'] ?? '',

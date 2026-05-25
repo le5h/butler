@@ -2,7 +2,7 @@
 
 $configFile = __DIR__ . '/config.php';
 $config = file_exists($configFile) ? require $configFile : [];
-$config = array_merge(['password' => '', 'storage' => 'file', 'auth_secret' => ''], $config);
+$config = array_merge(['password' => '', 'storage' => 'file', 'auth_secret' => '', 'store_ip' => false, 'geo_lookup' => false], $config);
 
 require_once __DIR__ . '/lib/storage.php';
 require_once __DIR__ . '/lib/geo.php';
@@ -24,14 +24,21 @@ if ($routeApi) {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     if ($method === 'new') {
         $storage = createStorage($config);
-        $id = $storage->newVisit([
+        $data = [
             'lang' => $input['lang'] ?? $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
-            'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
             'os' => detectOS($_SERVER['HTTP_USER_AGENT'] ?? ''),
             'referrer' => $input['referrer'] ?? '',
             'screen' => $input['screen'] ?? '',
             'page' => $input['page'] ?? '',
-        ]);
+        ];
+        if ($config['store_ip']) {
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            $data['ip'] = $ip;
+            if ($config['geo_lookup'] && $ip) {
+                $data['geo'] = geoLookup($ip);
+            }
+        }
+        $id = $storage->newVisit($data);
         echo json_encode(['id' => $id]);
         return;
     }
