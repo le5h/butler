@@ -65,11 +65,12 @@ function serveSettings()
                 $csrfToken = $_SESSION['settings_csrf'];
             }
         } else {
-            $pwd = $_POST['password'] ?? '';
             $storage = $_POST['storage'] ?? 'file';
 
             if (!preg_match('/^(file|sqlite)$/', $storage)) {
                 $error = 'Invalid storage type.';
+            } elseif ($config['password'] !== '' && !empty($_POST['new_password']) && !password_verify($_POST['old_password'] ?? '', $config['password'])) {
+                $error = 'Current password is incorrect.';
             } else {
                 $config['storage'] = $storage;
                 $config['store_ip'] = !empty($_POST['store_ip']);
@@ -79,8 +80,9 @@ function serveSettings()
                 $config['collect_page'] = !empty($_POST['collect_page']);
                 $retention = (int)($_POST['retention_days'] ?? 0);
                 $config['retention_days'] = max(0, $retention);
-                if ($pwd !== '') {
-                    $config['password'] = password_hash($pwd, PASSWORD_BCRYPT);
+                $newPwd = $_POST['new_password'] ?? '';
+                if ($newPwd !== '') {
+                    $config['password'] = password_hash($newPwd, PASSWORD_BCRYPT);
                 }
                 $written = file_put_contents(
                     $configFile,
@@ -166,9 +168,15 @@ function serveSettings()
 
 <hr>
 
+<?php if ($hasPassword): ?>
 <div class="form-group">
-<label for="password"><?=$hasPassword?'New password (leave blank to keep current)':'Set access password'?></label>
-<input type="password" name="password" id="password" placeholder="<?=$hasPassword?'Enter new password':'Enter password'?>">
+<label for="old_password">Current password</label>
+<input type="password" name="old_password" id="old_password" placeholder="Required to change password">
+</div>
+<?php endif; ?>
+<div class="form-group">
+<label for="new_password"><?=$hasPassword?'New password (leave blank to keep current)':'Set access password'?></label>
+<input type="password" name="new_password" id="new_password" placeholder="<?=$hasPassword?'Enter new password':'Enter password'?>">
 </div>
 
 <button type="submit" class="btn">Save</button>
