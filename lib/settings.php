@@ -131,6 +131,8 @@ function serveSettings()
 <form method="post">
 <input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
 
+<h4 class="section-heading">Data collection</h4>
+
 <div class="form-group">
 <label for="storage">Storage backend</label>
 <select name="storage" id="storage">
@@ -149,7 +151,7 @@ function serveSettings()
 <label><input type="checkbox" name="collect_lang" value="1" <?=$collectLang?'checked':''?>> Collect browser language</label>
 </div>
 
-<hr>
+<h4 class="section-heading">Privacy</h4>
 
 <div class="form-group">
 <label><input type="checkbox" name="store_subnet" value="1" <?=$storeSubnet?'checked':''?>> Store visitor subnet (e.g. 192.168.1.0/24)</label>
@@ -159,14 +161,14 @@ function serveSettings()
 <label><input type="checkbox" name="geo_lookup" value="1" <?=$geoLookup?'checked':''?>> Look up geo location from IP (not stored)</label>
 </div>
 
-<hr>
+<h4 class="section-heading">Maintenance</h4>
 
 <div class="form-group">
 <label for="retention_days">Auto-cleanup (days, 0 = never)</label>
 <input type="number" name="retention_days" id="retention_days" value="<?=$retentionDays?>" min="0" max="3650">
 </div>
 
-<hr>
+<h4 class="section-heading">Admin access</h4>
 
 <?php if ($hasPassword): ?>
 <div class="form-group">
