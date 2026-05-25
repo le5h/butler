@@ -11,7 +11,7 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
   <div class="test-row"><span class="test-label">Visit ID</span><span class="test-val mono" id="s-id">—</span></div>
   <div class="test-row"><span class="test-label">Interactions</span><span class="test-val" id="s-clicks">0</span></div>
   <div class="test-row"><span class="test-label">Elapsed</span><span class="test-val" id="s-elapsed">0s</span></div>
-  <div class="test-row"><span class="test-label">Auto-update</span><span class="test-val" id="s-auto">on leave/close</span></div>
+  <div class="test-row"><span class="test-label">Auto-update</span><span class="test-val" id="s-auto">on tab hide</span></div>
   <div class="test-row"><span class="test-label">Manual update</span><span class="test-val" id="s-update">not sent</span></div>
 </div>
 </div>
@@ -107,7 +107,6 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
   document.addEventListener('visibilitychange', function(){
     if (document.visibilityState === 'hidden') send();
   });
-  window.addEventListener('beforeunload', send);
 
   document.getElementById('btn-update').addEventListener('click', function(){
     if (!visitId) {
