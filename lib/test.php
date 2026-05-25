@@ -47,61 +47,63 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
 
 <script>
 (function(){
-  var base = '<?=$scriptName?>';
-  var start = Date.now(), clicks = 0, visitId = null;
-  var elTracker = document.getElementById('s-tracker');
-  var elId = document.getElementById('s-id');
-  var elClicks = document.getElementById('s-clicks');
-  var elElapsed = document.getElementById('s-elapsed');
-  var elAuto = document.getElementById('s-auto');
-  var elUpdate = document.getElementById('s-update');
-  var elResponse = document.getElementById('s-response');
+  const base = '<?=$scriptName?>';
+  const start = Date.now();
+  let clicks = 0, visitId = null;
+  const el = {
+    tracker: document.getElementById('s-tracker'),
+    id: document.getElementById('s-id'),
+    clicks: document.getElementById('s-clicks'),
+    elapsed: document.getElementById('s-elapsed'),
+    auto: document.getElementById('s-auto'),
+    update: document.getElementById('s-update'),
+    response: document.getElementById('s-response'),
+  };
 
-  elTracker.textContent = 'loaded';
-  elTracker.className = 'test-val test-ok';
+  el.tracker.textContent = 'loaded';
+  el.tracker.className = 'test-val test-ok';
 
   document.addEventListener('click', function(){ clicks++; tick(); });
   document.addEventListener('keydown', function(){ clicks++; tick(); });
-  var st=0; document.addEventListener('scroll', function(){ var n=Date.now(); if (n-st>300) { clicks++; st=n; tick(); } });
+  let lastScroll=0; document.addEventListener('scroll', function(){ const n=Date.now(); if (n-lastScroll>300) { clicks++; lastScroll=n; tick(); } });
 
   function tick() {
-    elClicks.textContent = clicks;
-    elElapsed.textContent = ((Date.now() - start) / 1e3).toFixed(1) + 's';
+    el.clicks.textContent = clicks;
+    el.elapsed.textContent = ((Date.now() - start) / 1e3).toFixed(1) + 's';
   }
 
   setInterval(tick, 1000);
 
-  var flags = <?=$collectFlags?>;
-  var d = {};
-  if (flags.referrer) d.referrer = document.referrer;
-  if (flags.lang) d.lang = navigator.language;
-  if (flags.page) d.page = location.pathname;
+  const flags = <?=$collectFlags?>;
+  const data = {};
+  if (flags.referrer) data.referrer = document.referrer;
+  if (flags.lang) data.lang = navigator.language;
+  if (flags.page) data.page = location.pathname;
 
   fetch(base + '?api=new', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(d)
+    body: JSON.stringify(data)
   })
   .then(function(r){ return r.json() })
-  .then(function(data){
-    visitId = data.id;
-    elId.textContent = data.id;
-    elUpdate.textContent = 'ready';
-    elUpdate.className = 'test-val test-ok';
+  .then(function(d){
+    visitId = d.id;
+    el.id.textContent = d.id;
+    el.update.textContent = 'ready';
+    el.update.className = 'test-val test-ok';
   })
-  ['catch'](function(err){
-    elTracker.textContent = 'new failed';
-    elTracker.className = 'test-val test-err';
+  ['catch'](function(){
+    el.tracker.textContent = 'new failed';
+    el.tracker.className = 'test-val test-err';
   });
 
   function send() {
     if (!visitId || send.s) return; send.s = 1;
-    var duration = ((Date.now() - start) / 1e3).toFixed(1);
-    var duration = ((Date.now() - start) / 1e3).toFixed(1);
+    const sec = ((Date.now() - start) / 1e3).toFixed(1);
     fetch(base + '?api=update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: visitId, duration: duration, interactions: clicks })
+      body: JSON.stringify({ id: visitId, duration: sec, interactions: clicks })
     });
   }
 
@@ -112,16 +114,16 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
 
   document.getElementById('btn-update').addEventListener('click', function(){
     if (!visitId) {
-      elUpdate.textContent = 'no visit ID yet';
-      elUpdate.className = 'test-val test-err';
+      el.update.textContent = 'no visit ID yet';
+      el.update.className = 'test-val test-err';
       return;
     }
 
-    var duration = ((Date.now() - start) / 1e3).toFixed(1);
-    var body = JSON.stringify({ id: visitId, duration: duration, interactions: clicks });
+    const sec = ((Date.now() - start) / 1e3).toFixed(1);
+    const body = JSON.stringify({ id: visitId, duration: sec, interactions: clicks });
 
-    elUpdate.textContent = 'sending...';
-    elUpdate.className = 'test-val';
+    el.update.textContent = 'sending...';
+    el.update.className = 'test-val';
 
     fetch(base + '?api=update', {
       method: 'POST',
@@ -130,14 +132,14 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
     })
     .then(function(r){ return r.json() })
     .then(function(d){
-      elUpdate.textContent = d.ok ? 'sent OK' : 'failed';
-      elUpdate.className = 'test-val ' + (d.ok ? 'test-ok' : 'test-err');
-      elResponse.textContent = JSON.stringify(d, null, 2);
+      el.update.textContent = d.ok ? 'sent OK' : 'failed';
+      el.update.className = 'test-val ' + (d.ok ? 'test-ok' : 'test-err');
+      el.response.textContent = JSON.stringify(d, null, 2);
     })
     ['catch'](function(err){
-      elUpdate.textContent = 'error';
-      elUpdate.className = 'test-val test-err';
-      elResponse.textContent = String(err);
+      el.update.textContent = 'error';
+      el.update.className = 'test-val test-err';
+      el.response.textContent = String(err);
     });
   });
 })();

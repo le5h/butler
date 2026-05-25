@@ -38,17 +38,20 @@ if ($routeJs) {
         'page' => (bool)$config['collect_page'],
     ]);
     echo <<<JS
-(function(){var i=null,s=Date.now(),c=0,S=$collect;
-function t(){c++}
-document.addEventListener('click',t);
-document.addEventListener('keydown',t);
-var st=0;document.addEventListener('scroll',function(){var n=Date.now();if(n-st>300){c++;st=n}});
-var b=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
-var d={};S.referrer&&(d.referrer=document.referrer);S.lang&&(d.lang=navigator.language);S.page&&(d.page=location.pathname);
-fetch(b+'?api=new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()}).then(function(d){i=d.id})['catch'](function(){});
-function l(){if(!i||l.s)return;l.s=1;var e=((Date.now()-s)/1e3).toFixed(1);var d={id:i,duration:e,interactions:c};try{(navigator.sendBeacon||function(u,d){fetch(u,{method:'POST',body:d,keepalive:!0})})(b+'?api=update',JSON.stringify(d))}catch(e){}}
-document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'?l():l.s=0});
-window.addEventListener('beforeunload',l);})();
+(function(){let id=null,start=Date.now(),ints=0,collect=$collect,base,lastScroll=0;
+function inc(){ints++}
+document.addEventListener('click',inc);
+document.addEventListener('keydown',inc);
+document.addEventListener('scroll',function(){let n=Date.now();if(n-lastScroll>300){ints++;lastScroll=n}});
+base=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
+let data={};
+if(collect.referrer)data.referrer=document.referrer;
+if(collect.lang)data.lang=navigator.language;
+if(collect.page)data.page=location.pathname;
+fetch(base+'?api=new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json()}).then(function(d){id=d.id})['catch'](function(){});
+function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);try{(navigator.sendBeacon||function(url,body){fetch(url,{method:'POST',body:body,keepalive:!0})})(base+'?api=update',JSON.stringify({id:id,duration:sec,interactions:ints}))}catch(e){}}
+document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'?send():send.s=0});
+window.addEventListener('beforeunload',send);})();
 JS;
     return;
 }
