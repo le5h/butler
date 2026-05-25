@@ -50,7 +50,7 @@ if(collect.lang)data.lang=navigator.language;
 if(collect.page)data.page=location.pathname;
 function api(m,d){return fetch(base+'?api='+m,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()})}
 api('new',data).then(function(d){id=d.id})['catch'](function(){});
-function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);try{(navigator.sendBeacon||function(url,body){fetch(url,{method:'POST',body:body,keepalive:!0})})(base+'?api=update',JSON.stringify({id:id,duration:sec,interactions:ints}))}catch(e){}}
+function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);let data={id:id,duration:sec,interactions:ints};try{(navigator.sendBeacon||function(u,b){api('update',JSON.parse(b))})(base+'?api=update',JSON.stringify(data))}catch(e){}}
 document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'?send():send.s=0});
 window.addEventListener('beforeunload',send);})();
 JS;
