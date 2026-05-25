@@ -62,6 +62,7 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
 
   document.addEventListener('click', function(){ clicks++; tick(); });
   document.addEventListener('keydown', function(){ clicks++; tick(); });
+  var st=0; document.addEventListener('scroll', function(){ var n=Date.now(); if (n-st>300) { clicks++; st=n; tick(); } });
 
   function tick() {
     elClicks.textContent = clicks;
