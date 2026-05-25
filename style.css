@@ -142,6 +142,9 @@ a:hover{color:#a78bfa}
 .quality-legend .ql{display:inline-flex;align-items:center;gap:5px}
 .ql-dot{display:inline-block;width:8px;height:8px;border-radius:50%}
 
+/* ID circle */
+.id-circle{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;border:1px solid rgba(255,255,255,.15)}
+
 /* Mobile responsive table */
 @media (max-width: 640px) {
   table, thead, tbody, tr, th, td { display: block }

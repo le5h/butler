@@ -1,6 +1,6 @@
 <?php
 
-function renderSettingsForm(string $message, string $error, string $csrfToken, string $currentStorage, bool $storeSubnet, bool $geoLookup, bool $collectReferrer, bool $collectLang, bool $collectPage, int $retentionDays, bool $hasPassword, bool $totpActive, bool $totpCanSetup, string $pendingSecret, string $totpSecret, string $otpauth): void {
+function renderSettingsForm(string $message, string $error, string $csrfToken, string $currentStorage, bool $storeSubnet, bool $geoLookup, bool $collectReferrer, bool $collectLang, bool $collectPage, bool $collectTimezone, bool $collectOs, int $retentionDays, bool $hasPassword, bool $totpActive, bool $totpCanSetup, string $pendingSecret, string $totpSecret, string $otpauth): void {
 ?>
 <div class="container-narrow">
 
@@ -29,6 +29,12 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 </div>
 <div class="form-group form-group-inline">
 <label><input type="checkbox" name="collect_lang" value="1" <?=$collectLang?'checked':''?>> Collect browser language</label>
+</div>
+<div class="form-group form-group-inline">
+<label><input type="checkbox" name="collect_timezone" value="1" <?=$collectTimezone?'checked':''?>> Collect timezone</label>
+</div>
+<div class="form-group form-group-inline">
+<label><input type="checkbox" name="collect_os" value="1" <?=$collectOs?'checked':''?>> Collect OS from User-Agent</label>
 </div>
 
 <h4 class="section-heading">Privacy settings</h4>
@@ -176,6 +182,8 @@ function serveSettings() {
                 $config['collect_referrer'] = !empty($_POST['collect_referrer']);
                 $config['collect_lang'] = !empty($_POST['collect_lang']);
                 $config['collect_page'] = !empty($_POST['collect_page']);
+                $config['collect_timezone'] = !empty($_POST['collect_timezone']);
+                $config['collect_os'] = !empty($_POST['collect_os']);
                 $retention = (int)($_POST['retention_days'] ?? 0);
                 $config['retention_days'] = max(0, $retention);
                 $newPwd = $_POST['new_password'] ?? '';
@@ -205,6 +213,8 @@ function serveSettings() {
     $collectReferrer = !empty($config['collect_referrer']);
     $collectLang = !empty($config['collect_lang']);
     $collectPage = !empty($config['collect_page']);
+    $collectTimezone = !empty($config['collect_timezone']);
+    $collectOs = !empty($config['collect_os'] ?? true);
     $retentionDays = (int)($config['retention_days'] ?? 0);
 
     $totpActive = $totpSecret !== '';
@@ -221,6 +231,6 @@ function serveSettings() {
     header('Content-Type: text/html; charset=utf-8');
     renderHead('Settings');
     renderTop('settings');
-    renderSettingsForm($message, $error, $csrfToken, $currentStorage, $storeSubnet, $geoLookup, $collectReferrer, $collectLang, $collectPage, $retentionDays, $hasPassword, $totpActive, $totpCanSetup, $pendingSecret, $totpSecret, $otpauth);
+    renderSettingsForm($message, $error, $csrfToken, $currentStorage, $storeSubnet, $geoLookup, $collectReferrer, $collectLang, $collectPage, $collectTimezone, $collectOs, $retentionDays, $hasPassword, $totpActive, $totpCanSetup, $pendingSecret, $totpSecret, $otpauth);
     renderFooter();
 }

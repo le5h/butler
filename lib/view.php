@@ -58,7 +58,7 @@ function renderViewDashboard(string $report, string $range, array $stats, array 
 <div class="table-wrap">
 <table>
 <thead><tr>
-<th>ID</th><th>Time</th><th>Duration</th><th>Interactions</th><th>Quality</th><th>Language</th><th>Subnet</th><th>Location</th><th>OS</th><th>Page</th>
+<th>Time</th><th>Page</th><th>Duration</th><th>Interactions</th><th>Quality</th><th>OS</th><th>Language</th><th>Timezone</th><th>Location</th><th>Subnet</th><th>ID</th>
 </tr></thead>
 <tbody>
 <?php foreach ($visits as $v):
@@ -71,13 +71,15 @@ function renderViewDashboard(string $report, string $range, array $stats, array 
     $lang = htmlspecialchars($v['lang'] ?? '-');
     $ip = htmlspecialchars($v['ip'] ?? '-');
     $geo = htmlspecialchars($v['geo'] ?? '-');
+    $tz = htmlspecialchars($v['timezone'] ?? '-');
     $os = htmlspecialchars($v['os'] ?? '-');
     $url = htmlspecialchars($v['page'] ?? '-');
-    $id = htmlspecialchars(substr($v['id'] ?? '', 0, 8));
+    $idFull = $v['id'] ?? '';
+    $idColor = '#' . substr(str_replace('-', '', $idFull), -6);
 ?>
-<tr><td data-label="ID" title="<?=htmlspecialchars($v['id']??'')?>"><?=$id?></td><td data-label="Time"><?=$time?></td><td data-label="Duration"><?=$dur?></td><td data-label="Interactions"><?=$intr?></td><td data-label="Quality"><span class="q-badge <?=$qCls?>"><?=$qLbl?></span></td><td data-label="Language"><?=$lang?></td><td data-label="Subnet"><?=$ip?></td><td data-label="Location"><?=$geo?></td><td data-label="OS"><?=$os?></td><td data-label="Page"><?=$url?></td></tr>
+<tr><td data-label="Time"><?=$time?></td><td data-label="Page"><?=$url?></td><td data-label="Duration"><?=$dur?></td><td data-label="Interactions"><?=$intr?></td><td data-label="Quality"><span class="q-badge <?=$qCls?>"><?=$qLbl?></span></td><td data-label="OS"><?=$os?></td><td data-label="Language"><?=$lang?></td><td data-label="Timezone"><?=$tz?></td><td data-label="Location"><?=$geo?></td><td data-label="Subnet"><?=$ip?></td><td data-label="ID" title="<?=htmlspecialchars($idFull)?>"><span class="id-circle" style="background:<?=$idColor?>"></span></td></tr>
 <?php endforeach; ?>
-<?php if (empty($visits)): ?><tr class="empty"><td colspan="10">No visits recorded yet. Once your tracker is live, data will appear here.</td></tr><?php endif; ?>
+<?php if (empty($visits)): ?><tr class="empty"><td colspan="11">No visits recorded yet. Once your tracker is live, data will appear here.</td></tr><?php endif; ?>
 </tbody>
 </table>
 </div>
@@ -158,7 +160,7 @@ function serveView() {
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="stats-' . $range . '-' . date('Y-m-d') . '.csv"');
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['ID', 'Timestamp', 'Duration', 'Interactions', 'Language', 'IP', 'Location', 'OS', 'Referrer', 'Page'], ',', '"', '');
+            fputcsv($out, ['ID', 'Timestamp', 'Duration', 'Interactions', 'Language', 'Timezone', 'IP', 'Location', 'OS', 'Referrer', 'Page'], ',', '"', '');
             foreach ($visits as $v) {
                 fputcsv($out, [
                     $v['id'] ?? '',
@@ -166,6 +168,7 @@ function serveView() {
                     $v['duration'] ?? '',
                     $v['interactions'] ?? '',
                     $v['lang'] ?? '',
+                    $v['timezone'] ?? '',
                     $v['ip'] ?? '',
                     $v['geo'] ?? '',
                     $v['os'] ?? '',

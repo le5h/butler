@@ -261,6 +261,7 @@ class SqliteStorage {
             lang TEXT DEFAULT '',
             ip TEXT DEFAULT '',
             geo TEXT DEFAULT '',
+            timezone TEXT DEFAULT '',
             os TEXT DEFAULT '',
             referrer TEXT DEFAULT '',
             page TEXT DEFAULT ''
@@ -270,23 +271,26 @@ class SqliteStorage {
     }
 
     private function migrateSchema(): void {
-        try {
-            $stmt = $this->pdo->query("SELECT geo FROM visits LIMIT 1");
-        } catch (\PDOException $e) {
-            $this->pdo->exec("ALTER TABLE visits ADD COLUMN geo TEXT DEFAULT ''");
+        foreach (['geo', 'timezone'] as $col) {
+            try {
+                $this->pdo->query("SELECT $col FROM visits LIMIT 1");
+            } catch (\PDOException $e) {
+                $this->pdo->exec("ALTER TABLE visits ADD COLUMN $col TEXT DEFAULT ''");
+            }
         }
     }
 
     public function newVisit(array $data): string {
         $id = str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
-        $stmt = $this->pdo->prepare("INSERT INTO visits (id, timestamp, lang, ip, geo, os, referrer, page)
-            VALUES (:id, :timestamp, :lang, :ip, :geo, :os, :referrer, :page)");
+        $stmt = $this->pdo->prepare("INSERT INTO visits (id, timestamp, lang, ip, geo, timezone, os, referrer, page)
+            VALUES (:id, :timestamp, :lang, :ip, :geo, :timezone, :os, :referrer, :page)");
         $stmt->execute([
             ':id' => $id,
             ':timestamp' => time(),
             ':lang' => $data['lang'] ?? '',
             ':ip' => $data['ip'] ?? '',
             ':geo' => $data['geo'] ?? '',
+            ':timezone' => $data['timezone'] ?? '',
             ':os' => $data['os'] ?? '',
             ':referrer' => $data['referrer'] ?? '',
             ':page' => $data['page'] ?? '',

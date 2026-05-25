@@ -9,8 +9,8 @@ $config = file_exists($configFile) ? require $configFile : [];
 $config = array_merge([
     'password' => '', 'storage' => 'file', 'auth_secret' => '',
     'store_subnet' => false, 'geo_lookup' => false,
-    'collect_referrer' => true, 'collect_lang' => true, 'collect_page' => true,
-    'retention_days' => 0,
+    'collect_referrer' => true, 'collect_lang' => true, 'collect_page' => true, 'collect_timezone' => false, 'collect_os' => true,
+    'retention_days' => 0, 'rate_limit' => 120,
 ], $config);
 
 $routeJs = isset($_GET['js']);
@@ -36,23 +36,26 @@ if ($routeJs) {
         'referrer' => (bool)$config['collect_referrer'],
         'lang' => (bool)$config['collect_lang'],
         'page' => (bool)$config['collect_page'],
+        'timezone' => (bool)$config['collect_timezone'],
     ]);
     echo <<<JS
 (function(){let id=null,start=Date.now(),ints=0,collect=$collect,base,lastScroll=0;
 function inc(){ints++}
 document.addEventListener('click',inc);
 document.addEventListener('keydown',inc);
-document.addEventListener('scroll',function(){let n=Date.now();if(n-lastScroll>300){ints++;lastScroll=n}});
+document.addEventListener('scroll',function(){let n=Date.now();if(n-lastScroll>300){ints++;lastScroll=n}},{passive:true});
 base=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
 let data={};
 if(collect.referrer)data.referrer=document.referrer;
 if(collect.lang)data.lang=navigator.language;
 if(collect.page)data.page=location.pathname;
+if(collect.timezone)data.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;
 function api(m,d){return fetch(base+'?api='+m,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()})}
-api('new',data).then(function(d){id=d.id})['catch'](function(){});
-function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);let data={id:id,duration:sec,interactions:ints};try{if(navigator.sendBeacon)navigator.sendBeacon(base+'?api=update',JSON.stringify(data));else api('update',data)}catch(e){}}
-document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'?send():send.s=0});
-window.addEventListener('beforeunload',send);})();
+api('new',data).then(function(d){id=d.id}).catch(function(){});
+function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);let data={id:id,duration:sec,interactions:ints};
+try{if(navigator.sendBeacon)navigator.sendBeacon(base+'?api=update',JSON.stringify(data));else api('update',data)}catch(e){}}
+document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'?send():send.s=0},{passive:true});
+window.addEventListener('beforeunload',send,{passive:true});})();
 JS;
     return;
 }
@@ -60,6 +63,7 @@ JS;
 if ($routeApi) {
     require_once __DIR__ . '/lib/storage.php';
     require_once __DIR__ . '/lib/geo.php';
+    require_once __DIR__ . '/lib/ratelimit.php';
 
     function getClientIp(): string {
         if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
@@ -71,17 +75,8 @@ if ($routeApi) {
         return $_SERVER['REMOTE_ADDR'] ?? '';
     }
 
-    function checkRateLimit(string $ip): bool {
-        $file = __DIR__ . '/data/ratelimit/' . md5($ip) . '_' . date('YmdH') . '.txt';
-        if (!is_dir(dirname($file))) @mkdir(dirname($file), 0777, true);
-        $count = (int)@file_get_contents($file);
-        if ($count >= 120) return false;
-        file_put_contents($file, $count + 1, LOCK_EX);
-        return true;
-    }
-
     $ip = getClientIp();
-    if (!checkRateLimit($ip)) {
+    if (!checkRateLimit($ip, $config['rate_limit'] ?? 120)) {
         header('Content-Type: application/json; charset=utf-8');
         http_response_code(429);
         echo json_encode(['error' => 'too many requests']);
@@ -100,10 +95,11 @@ if ($routeApi) {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     if ($method === 'new') {
         $storage = createStorage($config);
-        $data = ['os' => detectOS($_SERVER['HTTP_USER_AGENT'] ?? '')];
+        $data = $config['collect_os'] ? ['os' => detectOS($_SERVER['HTTP_USER_AGENT'] ?? '')] : [];
         if ($config['collect_lang']) $data['lang'] = $input['lang'] ?? '';
         if ($config['collect_referrer']) $data['referrer'] = $input['referrer'] ?? '';
         if ($config['collect_page']) $data['page'] = $input['page'] ?? '';
+        if ($config['collect_timezone']) $data['timezone'] = $input['timezone'] ?? '';
         if ($config['store_subnet']) $data['ip'] = subnetAddress($ip);
         if ($config['geo_lookup']) $data['geo'] = geoLookup($ip);
         $id = $storage->newVisit($data);

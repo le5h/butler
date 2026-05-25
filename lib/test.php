@@ -79,6 +79,7 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
   if (flags.referrer) data.referrer = document.referrer;
   if (flags.lang) data.lang = navigator.language;
   if (flags.page) data.page = location.pathname;
+  if (flags.timezone) data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   function api(method, body) {
     return fetch(base + '?api=' + method, {
@@ -93,8 +94,7 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
     el.id.textContent = d.id;
     el.update.textContent = 'ready';
     el.update.className = 'test-val test-ok';
-  })
-  ['catch'](function(){
+  }).catch(function(){
     el.tracker.textContent = 'new failed';
     el.tracker.className = 'test-val test-err';
   });
@@ -127,8 +127,7 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
       el.update.textContent = d.ok ? 'sent OK' : 'failed';
       el.update.className = 'test-val ' + (d.ok ? 'test-ok' : 'test-err');
       el.response.textContent = JSON.stringify(d, null, 2);
-    })
-    ['catch'](function(err){
+    }).catch(function(err){
       el.update.textContent = 'error';
       el.update.className = 'test-val test-err';
       el.response.textContent = String(err);
@@ -145,6 +144,7 @@ function serveTest() {
         'referrer' => (bool)$GLOBALS['config']['collect_referrer'],
         'lang' => (bool)$GLOBALS['config']['collect_lang'],
         'page' => (bool)$GLOBALS['config']['collect_page'],
+        'timezone' => (bool)$GLOBALS['config']['collect_timezone'],
     ]);
     require_once __DIR__ . '/common.php';
     header('Content-Type: text/html; charset=utf-8');
