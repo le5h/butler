@@ -56,9 +56,10 @@ tr:hover td{background:#1e1f27}
 select,input[type=password],input[type=number],input[type=text]{width:100%;padding:11px 13px;background:#0e0f14;border:1px solid #2a2b33;border-radius:8px;font-size:.92rem;color:#ecedee;outline:none;transition:border-color .15s}
 select:focus,input[type=password]:focus,input[type=number]:focus,input[type=text]:focus{border-color:#818cf8}
 select option{background:#18191f;color:#ecedee}
-.btn{background:linear-gradient(135deg,#818cf8,#a78bfa);color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:.92rem;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn{display:inline-block;background:linear-gradient(135deg,#818cf8,#a78bfa);color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:.92rem;font-weight:600;cursor:pointer;transition:opacity .15s}
 .btn:hover{opacity:.88}
 .btn:active{opacity:.75}
+.btn-danger{background:linear-gradient(135deg,#f87171,#fb7185)}
 
 /* Checkboxes */
 .form-group input[type=checkbox]{accent-color:#818cf8;width:16px;height:16px;margin-right:6px;vertical-align:text-top}
@@ -73,11 +74,13 @@ select option{background:#18191f;color:#ecedee}
 .secret-sm{font-size:.78rem}
 .select-all{user-select:all}
 .text-muted{color:#6b6d77;font-size:.82rem}
+.text-green{color:#6ee7b7}
 
 /* Utility spacing */
 .mt-4{margin-top:4px}
 .mt-8{margin-top:8px}
 .mt-12{margin-top:12px}
+.mt-16{margin-top:16px}
 .mb-8{margin-bottom:8px}
 
 /* Divider */

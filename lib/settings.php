@@ -17,10 +17,52 @@ function serveSettings()
     }
     $csrfToken = $_SESSION['settings_csrf'];
 
+    $totpSecret = $config['auth_secret'] ?? '';
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $submittedToken = $_POST['_csrf'] ?? '';
         if (!hash_equals($csrfToken, $submittedToken)) {
             $error = 'Invalid CSRF token. Please try again.';
+        } elseif (isset($_POST['totp_verify'])) {
+            $pendingSecret = $_POST['pending_secret'] ?? '';
+            $code = $_POST['totp_code'] ?? '';
+            if ($pendingSecret === '' || $code === '') {
+                $error = 'Missing secret or verification code.';
+            } elseif (!preg_match('/^[0-9]{6}$/', $code)) {
+                $error = 'Code must be exactly 6 digits.';
+            } elseif (!verifyTOTP($pendingSecret, $code)) {
+                $error = 'Invalid code. Make sure your authenticator app shows the correct code.';
+            } else {
+                $config['auth_secret'] = $pendingSecret;
+                $written = file_put_contents(
+                    $configFile,
+                    '<?php' . "\n\nreturn " . var_export($config, true) . ";\n",
+                    LOCK_EX
+                );
+                if ($written === false) {
+                    $error = 'Failed to write config file. Check permissions.';
+                } else {
+                    $message = 'Two-factor authentication is now active.';
+                    $totpSecret = $pendingSecret;
+                    $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
+                    $csrfToken = $_SESSION['settings_csrf'];
+                }
+            }
+        } elseif (isset($_POST['totp_disable'])) {
+            $config['auth_secret'] = '';
+            $written = file_put_contents(
+                $configFile,
+                '<?php' . "\n\nreturn " . var_export($config, true) . ";\n",
+                LOCK_EX
+            );
+            if ($written === false) {
+                $error = 'Failed to write config file. Check permissions.';
+            } else {
+                $message = 'Two-factor authentication disabled.';
+                $totpSecret = '';
+                $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
+                $csrfToken = $_SESSION['settings_csrf'];
+            }
         } else {
             $pwd = $_POST['password'] ?? '';
             $storage = $_POST['storage'] ?? 'file';
@@ -38,9 +80,6 @@ function serveSettings()
                 $config['retention_days'] = max(0, $retention);
                 if ($pwd !== '') {
                     $config['password'] = password_hash($pwd, PASSWORD_BCRYPT);
-                }
-                if (empty($config['auth_secret'])) {
-                    $config['auth_secret'] = base32_encode(random_bytes(20));
                 }
                 $written = file_put_contents(
                     $configFile,
@@ -66,7 +105,13 @@ function serveSettings()
     $collectLang = !empty($config['collect_lang']);
     $collectPage = !empty($config['collect_page']);
     $retentionDays = (int)($config['retention_days'] ?? 0);
-    $secret = $config['auth_secret'];
+
+    $totpActive = $totpSecret !== '';
+    $totpSetup = !$totpActive && isset($_GET['totp_setup']);
+    $pendingSecret = '';
+    if ($totpSetup) {
+        $pendingSecret = base32_encode(random_bytes(20));
+    }
 
     require_once __DIR__ . '/common.php';
     header('Content-Type: text/html; charset=utf-8');
@@ -128,20 +173,42 @@ function serveSettings()
 <button type="submit" class="btn">Save</button>
 </form>
 
-<?php if ($secret): ?>
 <hr class="hr-text">
-<h3 class="mb-8">Authenticator App (TOTP)</h3>
-<p class="text-muted mb-8">Secret key — enter this manually in your authenticator app (e.g. Google Authenticator, Authy):</p>
-<div class="secret select-all"><?=htmlspecialchars($secret)?></div>
-<?php
-$issuer = rawurlencode('local-stats');
-$label = rawurlencode('admin');
-$s = rawurlencode($secret);
-$otpauth = "otpauth://totp/$issuer:$label?secret=$s&issuer=$issuer";
+<h3 class="mb-8">Two-factor authentication</h3>
+
+<?php if ($totpActive): ?>
+<p class="text-muted mb-8">Two-factor authentication is <strong class="text-green">active</strong>.</p>
+<div class="secret select-all"><?=htmlspecialchars($totpSecret)?></div>
+<form method="post" class="mt-12">
+<input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
+<button type="submit" name="totp_disable" class="btn btn-danger">Disable TOTP</button>
+</form>
+
+<?php elseif ($totpSetup):
+    $issuer = rawurlencode('local-stats');
+    $label = rawurlencode('admin');
+    $s = rawurlencode($pendingSecret);
+    $otpauth = "otpauth://totp/$issuer:$label?secret=$s&issuer=$issuer";
 ?>
-<p class="text-muted mt-12">Or use this URI with any QR generator you trust:</p>
+<p class="text-muted mb-8">Scan this URI with your authenticator app, or enter the secret key manually.</p>
+<div class="secret select-all"><?=htmlspecialchars($pendingSecret)?></div>
+<p class="text-muted mt-12">URI for QR generator:</p>
 <div class="secret secret-sm select-all"><?=htmlspecialchars($otpauth)?></div>
+<form method="post" class="mt-16">
+<input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
+<input type="hidden" name="pending_secret" value="<?=htmlspecialchars($pendingSecret)?>">
+<div class="form-group">
+<label for="totp_code">Enter the 6-digit code from your authenticator app to verify setup</label>
+<input type="text" name="totp_code" id="totp_code" placeholder="000000" pattern="[0-9]{6}" inputmode="numeric" autofocus>
+</div>
+<button type="submit" name="totp_verify" class="btn">Verify &amp; enable TOTP</button>
+</form>
+
+<?php else: ?>
+<p class="text-muted mb-8">Secure your admin access with an authenticator app (Google Authenticator, Authy, etc.).</p>
+<a href="?settings&totp_setup" class="btn">Set up TOTP</a>
 <?php endif; ?>
+
 </div>
 
 </div>
