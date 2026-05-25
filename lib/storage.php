@@ -93,8 +93,9 @@ class FileStorage {
     public function newVisit(array $data): string {
         $this->recordsCache = null;
         $id = str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
+        $data['id'] = $id;
         $data['timestamp'] = time();
-        $line = $id . "\t" . json_encode(array_filter($data, fn($v) => $v !== '')) . "\n";
+        $line = json_encode(array_filter($data, fn($v) => $v !== ''), JSON_UNESCAPED_SLASHES) . "\n";
         $file = $this->fileFor(date('Y-m-d'));
         file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
         return $id;
@@ -109,10 +110,8 @@ class FileStorage {
         $fh = fopen($file, 'r');
         flock($fh, LOCK_SH);
         while (($line = fgets($fh)) !== false) {
-            $parts = explode("\t", $line, 2);
-            if ($parts[0] === $id) {
-                $record = json_decode(rtrim($parts[1], "\n"), true);
-            }
+            $r = json_decode(rtrim($line, "\n"), true);
+            if ($r && ($r['id'] ?? null) === $id) $record = $r;
         }
         flock($fh, LOCK_UN);
         fclose($fh);
@@ -120,8 +119,7 @@ class FileStorage {
         foreach ($data as $k => $v) {
             $record[$k] = $v;
         }
-        unset($record['id']);
-        $line = $id . "\t" . json_encode(array_filter($record, fn($v) => $v !== '')) . "\n";
+        $line = json_encode(array_filter($record, fn($v) => $v !== ''), JSON_UNESCAPED_SLASHES) . "\n";
         file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
         return true;
     }
@@ -148,11 +146,8 @@ class FileStorage {
         foreach ($files as $file) {
             $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
-                $parts = explode("\t", $line, 2);
-                if (count($parts) === 2) {
-                    $record = json_decode($parts[1], true);
-                    if ($record) { $record['id'] = $parts[0]; $records[$parts[0]] = $record; }
-                }
+                $record = json_decode($line, true);
+                if ($record && !empty($record['id'])) $records[$record['id']] = $record;
             }
         }
 
