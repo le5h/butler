@@ -18,6 +18,9 @@ function serveSetup()
             $config['storage'] = $storage;
             $config['store_ip'] = !empty($_POST['store_ip']);
             $config['geo_lookup'] = !empty($_POST['geo_lookup']);
+            $config['collect_referrer'] = !empty($_POST['collect_referrer']);
+            $config['collect_lang'] = !empty($_POST['collect_lang']);
+            $config['collect_page'] = !empty($_POST['collect_page']);
             if ($pwd !== '') {
                 $config['password'] = password_hash($pwd, PASSWORD_BCRYPT);
             }
@@ -41,6 +44,9 @@ function serveSetup()
     $currentStorage = $config['storage'];
     $storeIp = !empty($config['store_ip']);
     $geoLookup = !empty($config['geo_lookup']);
+    $collectReferrer = !empty($config['collect_referrer']);
+    $collectLang = !empty($config['collect_lang']);
+    $collectPage = !empty($config['collect_page']);
     $secret = $config['auth_secret'];
 
     header('Content-Type: text/html; charset=utf-8');
@@ -85,6 +91,18 @@ a{color:#0066cc}
 <option value="sqlite" <?=$currentStorage==='sqlite'?'selected':''?>>SQLite</option>
 </select>
 </div>
+
+<div class="form-group" style="margin-top:4px">
+<label style="font-weight:400;font-size:.85rem"><input type="checkbox" name="collect_page" value="1" <?=$collectPage?'checked':''?>> Collect page URL</label>
+</div>
+<div class="form-group" style="margin-top:4px">
+<label style="font-weight:400;font-size:.85rem"><input type="checkbox" name="collect_referrer" value="1" <?=$collectReferrer?'checked':''?>> Collect referrer URL</label>
+</div>
+<div class="form-group" style="margin-top:4px">
+<label style="font-weight:400;font-size:.85rem"><input type="checkbox" name="collect_lang" value="1" <?=$collectLang?'checked':''?>> Collect browser language</label>
+</div>
+
+<hr style="margin:16px 0;border:none;border-top:1px solid #eee">
 
 <div class="form-group">
 <label><input type="checkbox" name="store_ip" value="1" <?=$storeIp?'checked':''?>> Store visitor IP address</label>

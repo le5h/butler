@@ -11,16 +11,18 @@ Drop the folder on your server, embed a script tag, and start collecting visitor
 | `?js` | Returns an async JS tracker. Embed on any page. |
 | `?api&method=new` | Creates a new visit record. Called by the JS tracker on page load. |
 | `?api&method=update` | Updates a visit (duration, interactions). Called on page leave. |
+| `?settings` | Returns JSON with current collection settings (which fields the JS tracker sends). |
 | `?view` | Stats dashboard with Chart.js bar graph, summary cards, and paginated visit table. Switchable range: day, week, month, all. |
-| `?setup` | Configuration page: storage backend (file or SQLite), access password, TOTP auth secret with QR code. |
+| `?setup` | Configuration page: data collection toggles, storage backend (file or SQLite), access password, TOTP auth secret with QR code. |
 
 ## How the JS tracker works
 
-The JS snippet returned by `?js` is a self-executing IIFE that:
+The JS snippet returned by `?js` is a self-executing IIFE with collection settings **inlined** by the server at generation time. Only fields enabled in `?setup` are sent.
 
-1. **On page load** — sends a POST to `?api&method=new` with referrer, screen size, language, and page path. The server returns a unique visit ID.
-2. **During the session** — counts click and keydown events as interactions.
-3. **On page leave** (`beforeunload` / `visibilitychange`) — sends a POST to `?api&method=update` with the visit ID, elapsed duration (seconds), and interaction count. Uses `navigator.sendBeacon` when available.
+1. **Reads settings** — uses the inlined `S` object (or fetches `?settings` for programmatic use) to know which fields to send.
+2. **On page load** — sends a POST to `?api&method=new` with enabled fields (page, referrer, language). The server returns a unique visit ID.
+3. **During the session** — counts click and keydown events as interactions.
+4. **On page leave** (`beforeunload` / `visibilitychange`) — sends a POST to `?api&method=update` with the visit ID, elapsed duration (seconds), and interaction count. Uses `navigator.sendBeacon` when available.
 
 ## Embed example
 
@@ -51,12 +53,12 @@ This tool is designed for **aggregate analytics**, not user tracking. Collected 
 
 | Data point | Stored by default | Notes |
 |---|---|---|
-| Page URL, referrer, language, screen size | Yes | No personal data |
-| Visit duration, interaction count | Yes | Aggregated only |
+| Visit duration, interaction count | Yes | Always collected |
+| Page URL, referrer, language | Yes (each toggleable) | Toggle individually in `?setup` |
 | IP address | **No** (opt-in) | Toggle in `?setup` |
 | Geo location (from IP) | **No** (opt-in) | Requires IP storage |
 
-IP and geo location are opt-in to avoid storing personal data unless you explicitly need it.
+Every data point except visit ID, timestamp, duration, and interactions can be disabled in `?setup`.
 
 ## Storage
 
