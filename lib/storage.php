@@ -8,11 +8,58 @@ abstract class Storage
     abstract public function getVisitCount(string $range): int;
     abstract public function getStats(string $range): array;
     abstract public function getAggregatedStats(string $range): array;
+
+    protected static function fillChartGaps(array $buckets, string $range): array
+    {
+        if ($range === 'day') {
+            $labels = $counts = $durations = [];
+            for ($h = 0; $h < 24; $h++) {
+                $labels[] = sprintf('%02d:00', $h);
+                $b = $buckets[$h] ?? ['count' => 0, 'avg' => 0];
+                $counts[] = $b['count'];
+                $durations[] = $b['avg'];
+            }
+            return compact('labels', 'counts', 'durations');
+        }
+
+        if ($range === 'all') {
+            ksort($buckets);
+            $labels = $counts = $durations = [];
+            foreach ($buckets as $key => $b) {
+                $labels[] = date('M j', strtotime($key));
+                $counts[] = $b['count'];
+                $durations[] = $b['avg'];
+            }
+            return compact('labels', 'counts', 'durations');
+        }
+
+        $end = new DateTime();
+        $start = clone $end;
+        $start->modify($range === 'month' ? '-29 days' : '-6 days');
+
+        $labels = $counts = $durations = [];
+        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
+        foreach ($period as $d) {
+            $date = $d->format('Y-m-d');
+            $labels[] = $d->format('M j');
+            $b = $buckets[$date] ?? ['count' => 0, 'avg' => 0];
+            $counts[] = $b['count'];
+            $durations[] = $b['avg'];
+        }
+        $labels[] = $end->format('M j');
+        $b = $buckets[$end->format('Y-m-d')] ?? ['count' => 0, 'avg' => 0];
+        $counts[] = $b['count'];
+        $durations[] = $b['avg'];
+
+        return compact('labels', 'counts', 'durations');
+    }
 }
 
 class FileStorage extends Storage
 {
     private string $dir;
+    private ?array $recordsCache = null;
+    private string $cacheRange = '';
 
     public function __construct(string $dir)
     {
@@ -55,6 +102,7 @@ class FileStorage extends Storage
 
     public function newVisit(array $data): string
     {
+        $this->recordsCache = null;
         $id = str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
         $data['id'] = $id;
         $data['timestamp'] = time();
@@ -66,6 +114,7 @@ class FileStorage extends Storage
 
     public function updateVisit(string $id, array $data): bool
     {
+        $this->recordsCache = null;
         $files = glob($this->dir . '/*.txt');
         sort($files);
         foreach ($files as $file) {
@@ -93,6 +142,10 @@ class FileStorage extends Storage
 
     private function readRecords(string $range): array
     {
+        if ($this->recordsCache !== null && $this->cacheRange === $range) {
+            return $this->recordsCache;
+        }
+
         $records = [];
         $dates = $this->dateRange($range);
 
@@ -117,6 +170,9 @@ class FileStorage extends Storage
                 }
             }
         }
+
+        $this->recordsCache = $records;
+        $this->cacheRange = $range;
         return $records;
     }
 
@@ -154,63 +210,36 @@ class FileStorage extends Storage
     public function getAggregatedStats(string $range): array
     {
         $records = $this->readRecords($range);
+        $buckets = [];
 
         if ($range === 'day') {
-            $buckets = array_fill(0, 24, ['count' => 0, 'dur' => 0]);
+            $sums = array_fill(0, 24, 0.0);
+            $buckets = array_fill(0, 24, ['count' => 0, 'avg' => 0]);
             foreach ($records as $r) {
                 $h = (int)date('G', $r['timestamp']);
                 $buckets[$h]['count']++;
-                if (!empty($r['duration'])) $buckets[$h]['dur'] += (float)$r['duration'];
+                if (!empty($r['duration'])) $sums[$h] += (float)$r['duration'];
             }
-            $labels = $counts = $durations = [];
-            for ($h = 0; $h < 24; $h++) {
-                $labels[] = sprintf('%02d:00', $h);
-                $counts[] = $buckets[$h]['count'];
-                $durations[] = $buckets[$h]['count'] > 0 ? round($buckets[$h]['dur'] / $buckets[$h]['count'], 1) : 0;
+            foreach ($buckets as $h => &$b) {
+                if ($b['count'] > 0) $b['avg'] = round($sums[$h] / $b['count'], 1);
             }
-            return compact('labels', 'counts', 'durations');
-        }
-
-        $buckets = [];
-        foreach ($records as $r) {
-            $d = date('Y-m-d', $r['timestamp']);
-            if (!isset($buckets[$d])) $buckets[$d] = ['count' => 0, 'dur' => 0];
-            $buckets[$d]['count']++;
-            if (!empty($r['duration'])) $buckets[$d]['dur'] += (float)$r['duration'];
-        }
-
-        if ($range === 'all') {
-            ksort($buckets);
-            $labels = $counts = $durations = [];
-            foreach ($buckets as $d => $b) {
-                $labels[] = date('M j', strtotime($d));
-                $counts[] = $b['count'];
-                $durations[] = $b['count'] > 0 ? round($b['dur'] / $b['count'], 1) : 0;
+        } else {
+            $sums = [];
+            foreach ($records as $r) {
+                $d = date('Y-m-d', $r['timestamp']);
+                if (!isset($buckets[$d])) $buckets[$d] = ['count' => 0, 'avg' => 0];
+                $buckets[$d]['count']++;
+                if (!empty($r['duration'])) {
+                    if (!isset($sums[$d])) $sums[$d] = 0.0;
+                    $sums[$d] += (float)$r['duration'];
+                }
             }
-            return compact('labels', 'counts', 'durations');
+            foreach ($buckets as $d => &$b) {
+                if ($b['count'] > 0) $b['avg'] = round(($sums[$d] ?? 0) / $b['count'], 1);
+            }
         }
 
-        $end = new DateTime();
-        $start = clone $end;
-        $days = $range === 'month' ? 29 : 6;
-        $start->modify("-{$days} days");
-
-        $labels = $counts = $durations = [];
-        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
-        foreach ($period as $d) {
-            $date = $d->format('Y-m-d');
-            $labels[] = $d->format('M j');
-            $b = $buckets[$date] ?? ['count' => 0, 'dur' => 0];
-            $counts[] = $b['count'];
-            $durations[] = $b['count'] > 0 ? round($b['dur'] / $b['count'], 1) : 0;
-        }
-        $labels[] = $end->format('M j');
-        $date = $end->format('Y-m-d');
-        $b = $buckets[$date] ?? ['count' => 0, 'dur' => 0];
-        $counts[] = $b['count'];
-        $durations[] = $b['count'] > 0 ? round($b['dur'] / $b['count'], 1) : 0;
-
-        return compact('labels', 'counts', 'durations');
+        return self::fillChartGaps($buckets, $range);
     }
 }
 
@@ -237,7 +266,6 @@ class SqliteStorage extends Storage
             geo TEXT DEFAULT '',
             os TEXT DEFAULT '',
             referrer TEXT DEFAULT '',
-            screen TEXT DEFAULT '',
             page TEXT DEFAULT ''
         )");
         try {
@@ -249,8 +277,8 @@ class SqliteStorage extends Storage
     public function newVisit(array $data): string
     {
         $id = str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
-        $stmt = $this->pdo->prepare("INSERT INTO visits (id, timestamp, lang, ip, geo, os, referrer, screen, page)
-            VALUES (:id, :timestamp, :lang, :ip, :geo, :os, :referrer, :screen, :page)");
+        $stmt = $this->pdo->prepare("INSERT INTO visits (id, timestamp, lang, ip, geo, os, referrer, page)
+            VALUES (:id, :timestamp, :lang, :ip, :geo, :os, :referrer, :page)");
         $stmt->execute([
             ':id' => $id,
             ':timestamp' => time(),
@@ -259,7 +287,6 @@ class SqliteStorage extends Storage
             ':geo' => $data['geo'] ?? '',
             ':os' => $data['os'] ?? '',
             ':referrer' => $data['referrer'] ?? '',
-            ':screen' => $data['screen'] ?? '',
             ':page' => $data['page'] ?? '',
         ]);
         return $id;
@@ -313,76 +340,22 @@ class SqliteStorage extends Storage
     public function getAggregatedStats(string $range): array
     {
         $where = $this->rangeWhere($range);
-
-        if ($range === 'day') {
-            $sql = "SELECT CAST(strftime('%H', timestamp, 'unixepoch') AS INTEGER) as h,
-                           COUNT(*) as cnt, AVG(duration) as avg_dur
-                    FROM visits $where GROUP BY h ORDER BY h";
-        } else {
-            $sql = "SELECT strftime('%Y-%m-%d', timestamp, 'unixepoch') as d,
-                           COUNT(*) as cnt, AVG(duration) as avg_dur
-                    FROM visits $where GROUP BY d ORDER BY d";
-        }
-
-        $stmt = $this->pdo->query($sql);
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-        if ($range === 'day') {
-            $labels = $counts = $durations = [];
-            for ($h = 0; $h < 24; $h++) {
-                $labels[] = sprintf('%02d:00', $h);
-                $counts[] = 0;
-                $durations[] = 0;
-            }
-            foreach ($rows as $r) {
-                $h = (int)$r['h'];
-                $counts[$h] = (int)$r['cnt'];
-                $avg = $r['avg_dur'];
-                $durations[$h] = $avg ? round((float)$avg, 1) : 0;
-            }
-            return compact('labels', 'counts', 'durations');
-        }
+        $groupExpr = $range === 'day'
+            ? "CAST(strftime('%H', timestamp, 'unixepoch') AS INTEGER)"
+            : "strftime('%Y-%m-%d', timestamp, 'unixepoch')";
+        $rows = $this->pdo->query(
+            "SELECT $groupExpr as lbl, COUNT(*) as cnt, AVG(duration) as avg_dur
+             FROM visits $where GROUP BY lbl ORDER BY lbl"
+        )->fetchAll(\PDO::FETCH_ASSOC);
 
         $buckets = [];
         foreach ($rows as $r) {
-            $buckets[$r['d']] = [
+            $buckets[$r['lbl']] = [
                 'count' => (int)$r['cnt'],
-                'dur' => $r['avg_dur'] ? round((float)$r['avg_dur'], 1) : 0,
+                'avg' => $r['avg_dur'] ? round((float)$r['avg_dur'], 1) : 0,
             ];
         }
-
-        if ($range === 'all') {
-            ksort($buckets);
-            $labels = $counts = $durations = [];
-            foreach ($buckets as $d => $b) {
-                $labels[] = date('M j', strtotime($d));
-                $counts[] = $b['count'];
-                $durations[] = $b['dur'];
-            }
-            return compact('labels', 'counts', 'durations');
-        }
-
-        $end = new DateTime();
-        $start = clone $end;
-        $days = $range === 'month' ? 29 : 6;
-        $start->modify("-{$days} days");
-
-        $labels = $counts = $durations = [];
-        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
-        foreach ($period as $d) {
-            $date = $d->format('Y-m-d');
-            $labels[] = $d->format('M j');
-            $b = $buckets[$date] ?? ['count' => 0, 'dur' => 0];
-            $counts[] = $b['count'];
-            $durations[] = $b['dur'];
-        }
-        $labels[] = $end->format('M j');
-        $date = $end->format('Y-m-d');
-        $b = $buckets[$date] ?? ['count' => 0, 'dur' => 0];
-        $counts[] = $b['count'];
-        $durations[] = $b['dur'];
-
-        return compact('labels', 'counts', 'durations');
+        return self::fillChartGaps($buckets, $range);
     }
 
     private function rangeWhere(string $range): string
