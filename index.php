@@ -1,6 +1,10 @@
 <?php
 
 $configFile = __DIR__ . '/config.php';
+$configExample = __DIR__ . '/config.example.php';
+if (!file_exists($configFile) && file_exists($configExample)) {
+    copy($configExample, $configFile);
+}
 $config = file_exists($configFile) ? require $configFile : [];
 $config = array_merge([
     'password' => '', 'storage' => 'file', 'auth_secret' => '',

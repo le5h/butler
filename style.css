@@ -1,0 +1,89 @@
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;color:#333;line-height:1.5}
+
+/* Layout */
+.container{max-width:960px;margin:0 auto;padding:20px}
+.container-narrow{max-width:600px;margin:0 auto;padding:40px 20px}
+.card{background:#fff;border-radius:8px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* Nav / Header */
+.top{display:flex;align-items:baseline;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.top h1{font-size:1.5rem;margin-right:auto}
+.top a{font-size:.85rem;color:#0066cc;text-decoration:none}
+.top a:hover{text-decoration:underline}
+.top .spacer{margin:0 4px;color:#ccc}
+
+/* Range nav */
+.range-nav{margin-bottom:20px}
+.range-nav a{display:inline-block;padding:8px 16px;margin-right:4px;background:#fff;border:1px solid #ddd;text-decoration:none;color:#333;border-radius:4px;font-size:.9rem}
+.range-nav a.active{background:#0066cc;color:#fff;border-color:#0066cc}
+
+/* Chart */
+.chart-wrap{background:#fff;border-radius:8px;padding:16px;margin-bottom:20px}
+
+/* Summary cards */
+.summary{display:flex;gap:16px;margin-bottom:20px}
+.summary-card{background:#fff;border-radius:8px;padding:20px;flex:1;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.summary-card .num{font-size:2rem;font-weight:700;color:#0066cc}
+.summary-card .label{font-size:.85rem;color:#666;margin-top:4px}
+
+/* Toolbar */
+.toolbar{display:flex;gap:8px;margin-bottom:16px;align-items:center}
+.toolbar a,.toolbar .btn-sm{display:inline-block;padding:6px 14px;background:#fff;border:1px solid #ddd;text-decoration:none;color:#333;border-radius:4px;font-size:.85rem}
+.toolbar a:hover,.toolbar .btn-sm:hover{background:#f0f0f0}
+
+/* Tables */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #eee;font-size:.85rem}
+th{background:#fafafa;font-weight:600;color:#555}
+tr:hover{background:#f8f9ff}
+.empty td{text-align:center;color:#999;padding:32px}
+
+/* Pagination */
+.pagination{margin-top:16px;text-align:center}
+.pagination a{display:inline-block;padding:6px 12px;margin:0 2px;background:#fff;border:1px solid #ddd;text-decoration:none;color:#333;border-radius:4px;font-size:.85rem}
+.pagination a.active{background:#0066cc;color:#fff;border-color:#0066cc}
+.pagination a.disabled{opacity:.4;pointer-events:none}
+
+/* Forms */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-weight:600;margin-bottom:4px;font-size:.9rem}
+.form-group-inline label{font-weight:400;font-size:.85rem;display:inline}
+select,input[type=password],input[type=number]{width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;font-size:1rem}
+input[type=text]{padding:10px;border:1px solid #ddd;border-radius:4px;font-size:1rem}
+.btn{background:#0066cc;color:#fff;border:none;padding:12px 24px;border-radius:4px;font-size:1rem;cursor:pointer}
+.btn:hover{background:#0052a3}
+
+/* Messages */
+.msg{padding:12px;border-radius:4px;margin-bottom:16px;font-size:.9rem}
+.msg.ok{background:#d4edda;color:#155724}
+.msg.err{background:#f8d7da;color:#721c24}
+
+/* Secret display */
+.secret{font-family:monospace;background:#f0f0f0;padding:8px;border-radius:4px;word-break:break-all;margin:8px 0;font-size:.9rem}
+.secret-sm{font-size:.8rem}
+.select-all{user-select:all}
+.text-muted{color:#666;font-size:.85rem}
+.text-sm{font-size:.85rem}
+.mt-4{margin-top:4px}
+.mt-8{margin-top:8px}
+.mt-12{margin-top:12px}
+.mb-8{margin-bottom:8px}
+
+/* Divider */
+hr{border:none;border-top:1px solid #eee;margin:16px 0}
+
+/* Footer */
+.site-footer{margin-top:32px;font-size:.8rem;color:#999;text-align:center}
+
+/* Auth */
+.auth-body{display:flex;justify-content:center;align-items:center;min-height:100vh}
+.auth-form{background:#fff;padding:32px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);width:100%;max-width:360px}
+.auth-form h2{margin-bottom:16px;font-size:1.2rem}
+.auth-form p{margin-bottom:12px}
+.auth-form input{width:100%;margin-bottom:12px}
+.auth-form button{width:100%}
+
+/* Settings extras */
+.hr-text{margin:20px 0}

@@ -46,26 +46,28 @@ function checkAuth(string $page = 'view'): bool
     $needsTotp = !empty($_SESSION['auth_ok']) && !empty($config['auth_secret']);
     ?>
 <!DOCTYPE html>
-<html><head><title>Auth required</title>
-<style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;background:#f5f5f5}
-form{background:#fff;padding:32px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-input{padding:10px;border:1px solid #ddd;border-radius:4px;font-size:1rem;width:100%;margin-bottom:12px;box-sizing:border-box}
-button{padding:10px 20px;background:#0066cc;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:1rem}
-h2{margin-bottom:16px;font-size:1.2rem}
-p{margin-bottom:12px;font-size:.9rem;color:#666}</style></head><body>
-<form method="post">
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auth required - local-stats</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-body">
+<form method="post" class="auth-form">
 <h2><?=$needsTotp?'Two-factor auth':'Password required'?></h2>
 <?php if (!$needsTotp): ?>
 <input type="hidden" name="<?=htmlspecialchars($page)?>" value="">
 <input type="password" name="pwd" placeholder="Enter password" autofocus>
 <?php endif; ?>
 <?php if ($needsTotp): ?>
-<p>Enter the 6-digit code from your authenticator app.</p>
+<p class="text-muted">Enter the 6-digit code from your authenticator app.</p>
 <input type="text" name="totp" placeholder="000000" autofocus pattern="[0-9]{6}" inputmode="numeric">
 <?php endif; ?>
-<button type="submit">Submit</button>
+<button type="submit" class="btn">Submit</button>
 </form>
-</body></html>
+</body>
+</html>
 <?php
     return false;
 }
