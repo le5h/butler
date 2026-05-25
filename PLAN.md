@@ -43,6 +43,11 @@
 - [x] Performance: hot-path split, on-demand lib loading, SQL-level aggregation
 - [x] Privacy: minimal data by default, all optional fields opt-in
 
+## Phase 8 – Future
+- [ ] TOTP two-factor auth — verify codes on login, implement server-side validation
+- [ ] Configurable visit retention / auto-cleanup
+- [ ] Export stats (CSV/JSON)
+
 ## Architecture
 - `index.php` — lean router + inline JS/API handlers (hot path)
 - `lib/storage.php` — FileStorage & SqliteStorage with `getAggregatedStats()`
