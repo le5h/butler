@@ -95,7 +95,7 @@ class FileStorage {
         $id = str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
         $data['id'] = $id;
         $data['timestamp'] = time();
-        $line = $id . "\t" . json_encode($data) . "\n";
+        $line = $id . "\t" . json_encode(array_filter($data, fn($v) => $v !== '')) . "\n";
         $file = $this->fileFor(date('Y-m-d'));
         file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
         return $id;
@@ -115,7 +115,7 @@ class FileStorage {
             foreach ($data as $k => $v) {
                 $record[$k] = $v;
             }
-            $newLine = $id . "\t" . json_encode($record) . "\n";
+            $newLine = $id . "\t" . json_encode(array_filter($record, fn($v) => $v !== '')) . "\n";
             $rest = implode('', array_slice($lines, $i + 1));
             $fh = fopen($file, 'c');
             flock($fh, LOCK_EX);
