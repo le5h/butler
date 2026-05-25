@@ -115,13 +115,14 @@ class FileStorage {
             foreach ($data as $k => $v) {
                 $record[$k] = $v;
             }
-            $lines[$i] = $id . "\t" . json_encode($record) . "\n";
-            $rest = implode('', array_slice($lines, $i));
+            $newLine = $id . "\t" . json_encode($record) . "\n";
+            $rest = implode('', array_slice($lines, $i + 1));
             $fh = fopen($file, 'c');
             flock($fh, LOCK_EX);
             fseek($fh, $offset);
             fwrite($fh, $rest);
             ftruncate($fh, ftell($fh));
+            fwrite($fh, $newLine);
             flock($fh, LOCK_UN);
             fclose($fh);
             return true;
