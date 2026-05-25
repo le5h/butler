@@ -106,16 +106,24 @@ class FileStorage {
         $date = date('Y-m-d', (int)substr($id, 0, 10));
         $file = $this->fileFor($date);
         if (!file_exists($file)) return false;
-        $lines = file($file, FILE_IGNORE_NEW_LINES);
+        $lines = file($file);
+        $offset = 0;
         foreach ($lines as $i => $line) {
             $parts = explode("\t", $line, 2);
-            if ($parts[0] !== $id) continue;
-            $record = json_decode($parts[1], true);
+            if ($parts[0] !== $id) { $offset += strlen($line); continue; }
+            $record = json_decode(rtrim($parts[1], "\n"), true);
             foreach ($data as $k => $v) {
                 $record[$k] = $v;
             }
-            $lines[$i] = $id . "\t" . json_encode($record);
-            file_put_contents($file, implode("\n", $lines) . "\n");
+            $lines[$i] = $id . "\t" . json_encode($record) . "\n";
+            $rest = implode('', array_slice($lines, $i));
+            $fh = fopen($file, 'c');
+            flock($fh, LOCK_EX);
+            fseek($fh, $offset);
+            fwrite($fh, $rest);
+            ftruncate($fh, ftell($fh));
+            flock($fh, LOCK_UN);
+            fclose($fh);
             return true;
         }
         return false;
