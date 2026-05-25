@@ -1,7 +1,6 @@
 <?php
 
-function checkAuth(string $page = 'view'): bool
-{
+function checkAuth(string $page = 'view'): bool {
     global $config;
     if (empty($config['password'])) return true;
 
@@ -44,7 +43,7 @@ function checkAuth(string $page = 'view'): bool
     header('Content-Type: text/html; charset=utf-8');
     http_response_code(401);
     $needsTotp = !empty($_SESSION['auth_ok']) && !empty($config['auth_secret']);
-    ?>
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,8 +71,7 @@ function checkAuth(string $page = 'view'): bool
     return false;
 }
 
-function verifyTOTP($secret, $code)
-{
+function verifyTOTP($secret, $code) {
     $decoded = base32_decode($secret);
     if ($decoded === '') return false;
     $counter = (int)floor(time() / 30);
@@ -85,8 +83,7 @@ function verifyTOTP($secret, $code)
     return false;
 }
 
-function generateHOTP($key, $counter)
-{
+function generateHOTP($key, $counter) {
     $data = pack('J', $counter);
     $hash = hash_hmac('sha1', $data, $key, true);
     $offset = ord($hash[19]) & 0xf;
@@ -97,8 +94,7 @@ function generateHOTP($key, $counter)
     return str_pad($trunc % 1000000, 6, '0', STR_PAD_LEFT);
 }
 
-function base32_decode($str)
-{
+function base32_decode($str) {
     $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     $str = strtoupper(str_replace('=', '', $str));
     $bits = '';
@@ -115,8 +111,7 @@ function base32_decode($str)
     return $result;
 }
 
-function base32_encode($input)
-{
+function base32_encode($input) {
     $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     $bits = '';
     $len = strlen($input);

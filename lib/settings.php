@@ -1,7 +1,6 @@
 <?php
 
-function serveSettings()
-{
+function serveSettings() {
     global $config, $configFile;
     if (!empty($config['password']) && !checkAuth('settings')) return;
 
@@ -120,7 +119,7 @@ function serveSettings()
     header('Content-Type: text/html; charset=utf-8');
     renderHead('Settings');
     renderTop('settings');
-    ?>
+?>
 
 <div class="container-narrow">
 

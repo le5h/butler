@@ -1,7 +1,6 @@
 <?php
 
-function detectOS($ua)
-{
+function detectOS($ua) {
     if (strpos($ua, 'Windows') !== false) return 'Windows';
     if (strpos($ua, 'Mac OS') !== false || strpos($ua, 'Macintosh') !== false) return 'macOS';
     if (strpos($ua, 'Linux') !== false) return 'Linux';
@@ -11,8 +10,7 @@ function detectOS($ua)
     return 'Unknown';
 }
 
-function geoLookup($ip)
-{
+function geoLookup($ip) {
     static $cache = [];
     if (isset($cache[$ip])) return $cache[$ip];
     if ($ip === '127.0.0.1' || $ip === '::1') return $cache[$ip] = 'localhost';
@@ -34,8 +32,7 @@ function geoLookup($ip)
     return $cache[$ip] = '';
 }
 
-function subnetAddress($ip)
-{
+function subnetAddress($ip) {
     if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
         $parts = explode('.', $ip);
         return $parts[0] . '.' . $parts[1] . '.' . $parts[2] . '.0/24';

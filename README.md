@@ -7,6 +7,7 @@ Self-hosted analytics that respects your visitors. Drop the folder on any PHP se
 - **Two storage backends** — flat file (zero setup) or SQLite (faster queries). Switch in settings.
 - **Password + TOTP two-factor auth** — your stats stay yours.
 - **Dark theme dashboard** — Chart.js bar chart, paginated visit table, and CSV/JSON export.
+- **Adblocker-resistant** — served from your own domain with no third-party scripts. Not on any blocklist.
 
 ## Why local-stats?
 
@@ -31,6 +32,7 @@ The script auto-detects its own URL via `document.currentScript` — it works fr
 | `?settings` | Admin panel: data toggles, storage backend, password, TOTP, retention. |
 | `?api=new` | Creates a visit record (POST). Called by the tracker on page load. |
 | `?api=update` | Updates a visit (POST). Called by the tracker on page leave. |
+| `?test` | Test page to verify stats collection. Includes the tracker and interactive elements. |
 | `?logout` | Ends your admin session. |
 
 The first time you visit `?settings`, a `config.php` is created from the example template. Set a password and you're ready.

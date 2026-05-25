@@ -1,7 +1,6 @@
 <?php
 
-abstract class Storage
-{
+abstract class Storage {
     abstract public function newVisit(array $data): string;
     abstract public function updateVisit(string $id, array $data): bool;
     abstract public function getVisits(string $range, int $page, int $perPage): array;
@@ -10,8 +9,7 @@ abstract class Storage
     abstract public function getAggregatedStats(string $range): array;
     abstract public function cleanup(int $retentionDays): int;
 
-    protected static function fillChartGaps(array $buckets, string $range): array
-    {
+    protected static function fillChartGaps(array $buckets, string $range): array {
         if ($range === 'day') {
             $labels = $counts = $durations = [];
             for ($h = 0; $h < 24; $h++) {
@@ -56,27 +54,23 @@ abstract class Storage
     }
 }
 
-class FileStorage extends Storage
-{
+class FileStorage extends Storage {
     private string $dir;
     private ?array $recordsCache = null;
     private string $cacheRange = '';
 
-    public function __construct(string $dir)
-    {
+    public function __construct(string $dir) {
         $this->dir = rtrim($dir, '/\\');
         if (!is_dir($this->dir)) {
             mkdir($this->dir, 0777, true);
         }
     }
 
-    private function fileFor(string $date): string
-    {
+    private function fileFor(string $date): string {
         return $this->dir . '/' . $date . '.txt';
     }
 
-    private function dateRange(string $range): array
-    {
+    private function dateRange(string $range): array {
         $dates = [];
         $end = new DateTime();
         $start = clone $end;
@@ -101,8 +95,7 @@ class FileStorage extends Storage
         return $dates;
     }
 
-    public function newVisit(array $data): string
-    {
+    public function newVisit(array $data): string {
         $this->recordsCache = null;
         $id = str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
         $data['id'] = $id;
@@ -113,8 +106,7 @@ class FileStorage extends Storage
         return $id;
     }
 
-    public function updateVisit(string $id, array $data): bool
-    {
+    public function updateVisit(string $id, array $data): bool {
         $this->recordsCache = null;
         $files = glob($this->dir . '/*.txt');
         sort($files);
@@ -141,8 +133,7 @@ class FileStorage extends Storage
         return false;
     }
 
-    private function readRecords(string $range): array
-    {
+    private function readRecords(string $range): array {
         if ($this->recordsCache !== null && $this->cacheRange === $range) {
             return $this->recordsCache;
         }
@@ -177,21 +168,18 @@ class FileStorage extends Storage
         return $records;
     }
 
-    public function getVisits(string $range, int $page, int $perPage): array
-    {
+    public function getVisits(string $range, int $page, int $perPage): array {
         $records = $this->readRecords($range);
         usort($records, fn($a, $b) => ($b['timestamp'] ?? 0) - ($a['timestamp'] ?? 0));
         $offset = ($page - 1) * $perPage;
         return array_slice($records, $offset, $perPage);
     }
 
-    public function getVisitCount(string $range): int
-    {
+    public function getVisitCount(string $range): int {
         return count($this->readRecords($range));
     }
 
-    public function getStats(string $range): array
-    {
+    public function getStats(string $range): array {
         $records = $this->readRecords($range);
         $total = count($records);
         $sumDuration = 0;
@@ -208,8 +196,7 @@ class FileStorage extends Storage
         ];
     }
 
-    public function getAggregatedStats(string $range): array
-    {
+    public function getAggregatedStats(string $range): array {
         $records = $this->readRecords($range);
         $buckets = [];
 
@@ -243,8 +230,7 @@ class FileStorage extends Storage
         return self::fillChartGaps($buckets, $range);
     }
 
-    public function cleanup(int $retentionDays): int
-    {
+    public function cleanup(int $retentionDays): int {
         if ($retentionDays <= 0) return 0;
         $cutoff = time() - $retentionDays * 86400;
         $removed = 0;
@@ -262,13 +248,11 @@ class FileStorage extends Storage
     }
 }
 
-class SqliteStorage extends Storage
-{
+class SqliteStorage extends Storage {
     private \PDO $pdo;
     private string $dir;
 
-    public function __construct(string $dir)
-    {
+    public function __construct(string $dir) {
         $this->dir = rtrim($dir, '/\\');
         if (!is_dir($this->dir)) {
             mkdir($this->dir, 0777, true);
@@ -291,8 +275,7 @@ class SqliteStorage extends Storage
         $this->migrateSchema();
     }
 
-    private function migrateSchema(): void
-    {
+    private function migrateSchema(): void {
         try {
             $stmt = $this->pdo->query("SELECT geo FROM visits LIMIT 1");
         } catch (\PDOException $e) {
@@ -300,8 +283,7 @@ class SqliteStorage extends Storage
         }
     }
 
-    public function newVisit(array $data): string
-    {
+    public function newVisit(array $data): string {
         $id = str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
         $stmt = $this->pdo->prepare("INSERT INTO visits (id, timestamp, lang, ip, geo, os, referrer, page)
             VALUES (:id, :timestamp, :lang, :ip, :geo, :os, :referrer, :page)");
@@ -318,8 +300,7 @@ class SqliteStorage extends Storage
         return $id;
     }
 
-    public function updateVisit(string $id, array $data): bool
-    {
+    public function updateVisit(string $id, array $data): bool {
         $fields = [];
         $params = [':id' => $id];
         foreach (['duration', 'interactions'] as $key) {
@@ -334,8 +315,7 @@ class SqliteStorage extends Storage
         return $stmt->execute($params);
     }
 
-    public function getVisits(string $range, int $page, int $perPage): array
-    {
+    public function getVisits(string $range, int $page, int $perPage): array {
         $where = $this->rangeWhere($range);
         $offset = ($page - 1) * $perPage;
         $stmt = $this->pdo->prepare("SELECT * FROM visits $where ORDER BY timestamp DESC LIMIT :limit OFFSET :offset");
@@ -345,15 +325,13 @@ class SqliteStorage extends Storage
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public function getVisitCount(string $range): int
-    {
+    public function getVisitCount(string $range): int {
         $where = $this->rangeWhere($range);
         $stmt = $this->pdo->query("SELECT COUNT(*) FROM visits $where");
         return (int)$stmt->fetchColumn();
     }
 
-    public function getStats(string $range): array
-    {
+    public function getStats(string $range): array {
         $where = $this->rangeWhere($range);
         $stmt = $this->pdo->query("SELECT COUNT(*) as total, AVG(duration) as avg_dur FROM visits $where");
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -363,8 +341,7 @@ class SqliteStorage extends Storage
         ];
     }
 
-    public function getAggregatedStats(string $range): array
-    {
+    public function getAggregatedStats(string $range): array {
         $where = $this->rangeWhere($range);
         $groupExpr = $range === 'day'
             ? "CAST(strftime('%H', timestamp, 'unixepoch') AS INTEGER)"
@@ -384,8 +361,7 @@ class SqliteStorage extends Storage
         return self::fillChartGaps($buckets, $range);
     }
 
-    public function cleanup(int $retentionDays): int
-    {
+    public function cleanup(int $retentionDays): int {
         if ($retentionDays <= 0) return 0;
         $cutoff = time() - $retentionDays * 86400;
         $stmt = $this->pdo->prepare("DELETE FROM visits WHERE timestamp < :cutoff");
@@ -394,8 +370,7 @@ class SqliteStorage extends Storage
         return $stmt->rowCount();
     }
 
-    private function rangeWhere(string $range): string
-    {
+    private function rangeWhere(string $range): string {
         $seconds = match ($range) {
             'day' => 86400,
             'week' => 604800,
@@ -408,8 +383,7 @@ class SqliteStorage extends Storage
     }
 }
 
-function createStorage(array $config): Storage
-{
+function createStorage(array $config): Storage {
     $dir = __DIR__ . '/../data';
     try {
         return $config['storage'] === 'sqlite'

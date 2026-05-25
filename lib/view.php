@@ -1,7 +1,6 @@
 <?php
 
-function serveView()
-{
+function serveView() {
     global $config;
     if (!checkAuth('view')) return;
 
@@ -21,7 +20,7 @@ function serveView()
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="stats-' . $range . '-' . date('Y-m-d') . '.csv"');
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['ID', 'Timestamp', 'Duration', 'Interactions', 'Language', 'IP', 'Location', 'OS', 'Referrer', 'Page']);
+            fputcsv($out, ['ID', 'Timestamp', 'Duration', 'Interactions', 'Language', 'IP', 'Location', 'OS', 'Referrer', 'Page'], ',', '"', '');
             foreach ($visits as $v) {
                 fputcsv($out, [
                     $v['id'] ?? '',
@@ -34,7 +33,7 @@ function serveView()
                     $v['os'] ?? '',
                     $v['referrer'] ?? '',
                     $v['page'] ?? '',
-                ]);
+                ], ',', '"', '');
             }
             fclose($out);
         }
@@ -54,7 +53,7 @@ function serveView()
     renderHead("Stats - $range");
     renderChartJs();
     renderTop('view');
-    ?>
+?>
 
 <nav class="range-nav">
 <?php foreach (['day','week','month','all'] as $r):
@@ -102,11 +101,11 @@ function serveView()
 </div>
 
 <div class="pagination">
-<a href="<?=$queryBase?>&page=1" class="<?=$page<=1?'disabled':''?>">&laquo;</a>
-<?php for ($i = max(1, $page-2); $i <= min($totalPages, $page+2); $i++): ?>
-<a href="<?=$queryBase?>&page=<?=$i?>" class="<?=$i===$page?'active':''?>"><?=$i?></a>
+<a href="<?=$queryBase?>&page=1" class="<?=(int)$page<=1?'disabled':''?>">&laquo;</a>
+<?php $p = (int)$page; $tp = (int)$totalPages; for ($i = max(1, $p-2); $i <= min($tp, $p+2); $i++): ?>
+<a href="<?=$queryBase?>&page=<?=$i?>" class="<?=$i===$p?'active':''?>"><?=$i?></a>
 <?php endfor; ?>
-<a href="<?=$queryBase?>&page=<?=$totalPages?>" class="<?=$page>=$totalPages?'disabled':''?>">&raquo;</a>
+<a href="<?=$queryBase?>&page=<?=$tp?>" class="<?=$p>=$tp?'disabled':''?>">&raquo;</a>
 </div>
 
 <script>

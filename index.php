@@ -21,9 +21,9 @@ $routeApi = isset($_GET['api']);
 $routeView = isset($_GET['view']);
 $routeSettings = isset($_GET['settings']);
 $routeLogout = isset($_GET['logout']);
+$routeTest = isset($_GET['test']);
 
-function getClientIp(): string
-{
+function getClientIp(): string {
     if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
         $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
         return trim($ips[0]);
@@ -37,8 +37,7 @@ function getClientIp(): string
     return $_SERVER['REMOTE_ADDR'] ?? '';
 }
 
-function checkRateLimit(string $ip): bool
-{
+function checkRateLimit(string $ip): bool {
     $dir = __DIR__ . '/data';
     $rateLimitDir = $dir . '/ratelimit';
     if (!is_dir($rateLimitDir)) {
@@ -174,6 +173,12 @@ function l(){if(!i)return;var e=((Date.now()-s)/1e3).toFixed(1);var d={id:i,dura
 document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'&&l()});
 window.addEventListener('beforeunload',l);})();
 JS;
+    return;
+}
+
+if ($routeTest) {
+    require_once __DIR__ . '/lib/test.php';
+    serveTest();
     return;
 }
 
