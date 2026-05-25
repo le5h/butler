@@ -3,7 +3,7 @@
 ## Phase 1 – Foundation
 - [x] Init git repo, README, PLAN
 - [x] Create `index.php` with router (`?js`, `?api`, `?view`, `?settings`)
-- [x] Create `config.php` – password, storage backend, collection toggles
+- [x] Create `config.php` – password, auth codes, storage backend, collection toggles
 
 ## Phase 2 – Storage Layer
 - [x] `lib/storage.php` – interface with two implementations:
@@ -34,7 +34,7 @@
 - [x] Data collection toggles (page URL, referrer, language, IP, geo)
 - [x] Storage backend selector (file ↔ sqlite)
 - [x] Password set / change
-- [x] Collection toggles (page URL, referrer, language, IP, geo)
+- [x] Auth code generation + QR code display
 - [x] Save to `config.php`
 
 ## Phase 7 – Polish
