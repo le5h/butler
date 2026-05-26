@@ -108,6 +108,7 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 function serveSettings() {
     global $config, $configFile;
     if (!empty($config['password']) && !checkAuth('settings')) return;
+    if (isset($_POST['pwd']) || isset($_POST['totp'])) { header('Location: ?settings'); return; }
 
     $message = '';
     $error = '';
