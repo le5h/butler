@@ -35,35 +35,36 @@ if (route('logout')) {
 
 if (route('js')) {
     $self = $_SERVER['SCRIPT_NAME'];
-    $dataLines = '';
     $configToCode = [
         'collect_referrer' => "referrer:document.referrer",
         'collect_lang' => "lang:navigator.language",
         'collect_page' => "page:location.pathname",
         'collect_timezone' => "timezone:Intl.DateTimeFormat().resolvedOptions().timeZone",
     ];
+    $entries = [];
     foreach ($configToCode as $key => $code) {
-        if (!empty($config[$key])) $dataLines .= $code . ",";
+        if (!empty($config[$key])) $entries[] = $code;
     }
-    $dataObj = '{' . $dataLines . '}';
+    $dataObj = '{' . implode(',', $entries) . '}';
     header('Content-Type: application/javascript; charset=utf-8');
     header('Access-Control-Allow-Origin: *');
     echo <<<JS
 window.__butler={id:null,ints:0};
 (function(){
-let id=null,start=Date.now(),ints=0,base,lastScroll=0,b=window.__butler;
-function inc(){ints++;b.ints++}
+var b=window.__butler;b.start=Date.now();b.lastScroll=0;
+function inc(){b.ints++}
 document.addEventListener('click',inc);
 document.addEventListener('keydown',inc);
-document.addEventListener('scroll',function(){let n=Date.now();if(n-lastScroll>300){ints++;b.ints++;lastScroll=n}},{passive:true});
-base=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
-let data=$dataObj;b.data=data;
-function api(m,d){return fetch(base+'?api='+m,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()})}
-api('new',data).then(function(d){id=d.id;b.id=d.id}).catch(function(){b.err='new failed'});
-function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);let data={id:id,duration:sec,interactions:ints};
-try{if(navigator.sendBeacon)navigator.sendBeacon(base+'?api=update',JSON.stringify(data));else api('update',data)}catch(e){}}
+document.addEventListener('scroll',function(){let n=Date.now();if(n-b.lastScroll>300){b.ints++;b.lastScroll=n}},{passive:true});
+b.base=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
+b.data=$dataObj;
+function api(m,d){return fetch(b.base+'?api='+m,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()})}
+api('new',b.data).then(function(d){b.id=d.id}).catch(function(){b.err='new failed'});
+function send(){if(!b.id||send.s)return;send.s=1;let sec=((Date.now()-b.start)/1e3).toFixed(1);let data={id:b.id,duration:sec,interactions:b.ints};
+try{if(navigator.sendBeacon)navigator.sendBeacon(b.base+'?api=update',JSON.stringify(data));else api('update',data)}catch(e){}}
 document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'?send():send.s=0},{passive:true});
-window.addEventListener('beforeunload',send,{passive:true});})();
+window.addEventListener('beforeunload',send,{passive:true});}
+)();
 JS;
     return;
 }
