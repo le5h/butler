@@ -17,6 +17,7 @@
 - **Configurable OS collection** — `collect_os` config flag (default `true`), toggleable in settings
 - **Rate limiter refactor** — extracted to `lib/ratelimit.php`, atomic `flock(LOCK_EX)` across read/write, date stored inside file (`YmdH|count`), configurable limit
 - **JS tracker refactored** — all state on `window.__butler` (no local var duplication), compact modern JS (optional chaining, arrow functions, comma operators), `pagehide` replaces `beforeunload` for bfcache compat, config-to-JS data built via array+implode (no trailing comma)
+- **Configurable quality thresholds** — `quality_min_duration` (default 10s) and `quality_min_interactions` (default 1) settable in `?settings`, used by both storage backends and per-row badge rendering
 
 ## Future
 
