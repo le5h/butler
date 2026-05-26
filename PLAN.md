@@ -10,9 +10,13 @@
 - **Settings** — collection toggles, storage selector, password/TOTP auth, retention, CSRF
 - **Auth** — bcrypt passwords, TOTP (RFC 6238), session-based, CSRF on POST
 - **Polish** — XSS protection, hot-path split, on-demand lib loading, privacy defaults, geo caching, `?logout`
-- **Tooling** — `?test` page with live tracker status and manual API verify
+- **Tooling** — `?test` page with live tracker status, loads tracker via `?js` instead of duplicating JS
 - **Data protection** — `.htaccess` denying direct data access, gitignored runtime files
 - **SQLite perf** — timestamp index, conditional VACUUM on cleanup
+- **Timezone collection** — opt-in via `collect_timezone` config, stored in `timezone` column, sent via `Intl.DateTimeFormat` browser API
+- **Configurable OS collection** — `collect_os` config flag (default `true`), toggleable in settings
+- **Rate limiter refactor** — extracted to `lib/ratelimit.php`, atomic `flock(LOCK_EX)` across read/write, date stored inside file (`YmdH|count`), configurable limit
+- **JS tracker refactored** — all state on `window.__butler` (no local var duplication), compact modern JS (optional chaining, arrow functions, comma operators), `pagehide` replaces `beforeunload` for bfcache compat, config-to-JS data built via array+implode (no trailing comma)
 
 ## Future
 

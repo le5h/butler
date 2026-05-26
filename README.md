@@ -41,7 +41,7 @@ The first time you visit `?settings`, a `config.php` is created from the example
 
 ### JS tracker
 
-The snippet from `?js` is a self-executing IIFE with your collection settings baked in at generation time. On page load it POSTs to `?api=new` with enabled fields (page, referrer, language). The server returns a visit ID. On page leave (`beforeunload` / `visibilitychange`) it POSTs the ID with elapsed duration and interaction count via `navigator.sendBeacon`.
+The snippet from `?js` is a self-executing IIFE with your collection settings baked in at generation time (plain object literal, no runtime flag checks). On page load it POSTs to `?api=new` with enabled fields (page, referrer, language, timezone). The server returns a visit ID. On page leave (`pagehide` / `visibilitychange`) it POSTs the ID with elapsed duration and interaction count via `navigator.sendBeacon` or `fetch` as fallback. All tracker state is exposed on `window.__butler` (`id`, `ints`, `data`, `err`) for external monitoring.
 
 ### Architecture
 
@@ -68,13 +68,14 @@ Collected data is minimal and configurable:
 |---|---|---|
 | Visit duration, interactions | Always on | Needed for basic stats |
 | Page URL, referrer, language | On (toggleable) | Disable any in `?settings` |
-| Operating system | Always on | From User-Agent header |
+| Operating system | On (toggleable) | From User-Agent header |
+| Timezone | Off (toggleable) | From `Intl.DateTimeFormat` browser API |
 | Subnet (e.g. 192.168.1.0/24) | Off (opt-in) | Cannot identify individuals |
 | Geo location | Off (opt-in) | Looked up live, IP never stored |
 
 ### Security
 
-- Rate-limited to 120 requests/hour per IP on the API.
+- Rate-limited (default 120 req/h per IP, configurable) with atomic file locking on the API.
 - CSRF tokens on all state-changing POSTs.
 - bcrypt passwords, session-based auth (no secrets in URLs).
 - TOTP two-factor (RFC 6238) with 30s verification window.
