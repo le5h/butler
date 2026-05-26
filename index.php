@@ -62,7 +62,7 @@ api('new',b.data).then(d=>b.id=d.id).catch(()=>b.err='new failed');
 function send(){if(!b.id||send.s)return;send.s=1;let sec=((Date.now()-b.start)/1e3).toFixed(1),data={id:b.id,duration:sec,interactions:b.ints};
 try{navigator.sendBeacon?navigator.sendBeacon(b.base+'?api=update',JSON.stringify(data)):api('update',data)}catch(e){}}
 document.addEventListener('visibilitychange',function(){document.hidden?send():send.s=0},{passive:true});
-window.addEventListener('beforeunload',send,{passive:true});}
+window.addEventListener('pagehide',send,{passive:true});}
 )();
 JS;
     return;
