@@ -7,7 +7,7 @@ function renderTestPage(): void {
 <div class="card">
 <h4 class="section-heading">Live status</h4>
 <div id="status" class="test-status">
-  <div class="test-row"><span class="test-label">Tracker</span><span class="test-val test-ok" id="s-tracker">loaded</span></div>
+  <div class="test-row"><span class="test-label">Tracker</span><span class="test-val" id="s-tracker">waiting...</span></div>
   <div class="test-row"><span class="test-label">Visit ID</span><span class="test-val mono" id="s-id">waiting...</span></div>
   <div class="test-row"><span class="test-label">Interactions</span><span class="test-val" id="s-clicks">0</span></div>
   <div class="test-row"><span class="test-label">Elapsed</span><span class="test-val" id="s-elapsed">0s</span></div>
@@ -47,8 +47,8 @@ function renderTestPage(): void {
 
 <script src="?js"></script>
 <script>
-(function(){var s=document.getElementById('s-id'),c=document.getElementById('s-clicks'),e=document.getElementById('s-elapsed'),u=document.getElementById('s-update'),r=document.getElementById('s-response'),start=Date.now();
-function tick(){var b=window.__butler;if(b){if(b.id){s.textContent=b.id;u.textContent='ready'}c.textContent=b.ints}e.textContent=((Date.now()-start)/1e3).toFixed(1)+'s'}
+(function(){var s=document.getElementById('s-id'),c=document.getElementById('s-clicks'),e=document.getElementById('s-elapsed'),u=document.getElementById('s-update'),r=document.getElementById('s-response'),t=document.getElementById('s-tracker'),start=Date.now();
+function tick(){var b=window.__butler;if(b){if(b.err){t.textContent=b.err;t.className='test-val test-err'}else{t.textContent='loaded';t.className='test-val test-ok'}if(b.id){s.textContent=b.id;u.textContent='ready'}c.textContent=b.ints}e.textContent=((Date.now()-start)/1e3).toFixed(1)+'s'}
 setInterval(tick,200);
 document.getElementById('btn-update').addEventListener('click',function(){var b=window.__butler;if(!b||!b.id){u.textContent='no ID yet';return}
 u.textContent='sending...';fetch('<?=$_SERVER['SCRIPT_NAME']?>?api=update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.id,duration:((Date.now()-start)/1e3).toFixed(1),interactions:b.ints})}).then(function(r){return r.json()}).then(function(d){u.textContent=d.ok?'sent OK':'failed';r.textContent=JSON.stringify(d,null,2)}).catch(function(err){u.textContent='error';r.textContent=String(err)})})})();</script>
