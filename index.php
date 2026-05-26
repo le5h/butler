@@ -2,9 +2,11 @@
 
 $configFile = __DIR__ . '/config.php';
 $configExample = __DIR__ . '/config.example.php';
+
 if (!file_exists($configFile) && file_exists($configExample)) {
     copy($configExample, $configFile);
 }
+
 $config = file_exists($configFile) ? require $configFile : [];
 $config = array_merge([
     'password' => '',
@@ -135,18 +137,18 @@ if (route('api')) {
     return;
 }
 
+if (route('settings')) {
+    require_once __DIR__ . '/lib/auth.php';
+    require_once __DIR__ . '/lib/settings.php';
+    serveSettings();
+    return;
+}
+
 if (route('view')) {
     require_once __DIR__ . '/lib/storage.php';
     require_once __DIR__ . '/lib/auth.php';
     require_once __DIR__ . '/lib/view.php';
     serveView();
-    return;
-}
-
-if (route('settings')) {
-    require_once __DIR__ . '/lib/auth.php';
-    require_once __DIR__ . '/lib/settings.php';
-    serveSettings();
     return;
 }
 
@@ -156,9 +158,10 @@ if (route('test')) {
     return;
 }
 
-header('Content-Type: text/html; charset=utf-8');
-require_once __DIR__ . '/lib/common.php';
-renderHead('');
+if($_SERVER['REQUEST_METHOD'] === 'GET') {
+    header('Content-Type: text/html; charset=utf-8');
+    require_once __DIR__ . '/lib/common.php';
+    renderHead('Intro');
 ?>
 <div class="landing">
 <h1>Butler</h1>
@@ -169,4 +172,5 @@ renderHead('');
 </div>
 </div>
 <?php
-renderFooter();
+    renderFooter();
+}

@@ -1,6 +1,18 @@
 <?php
 
-function renderSettingsForm(string $message, string $error, string $csrfToken, string $currentStorage, bool $storeSubnet, bool $geoLookup, bool $collectReferrer, bool $collectLang, bool $collectPage, bool $collectTimezone, bool $collectOs, int $retentionDays, bool $hasPassword, bool $totpActive, bool $totpCanSetup, string $pendingSecret, string $totpSecret, string $otpauth, int $qualityMinDur, int $qualityMinInt): void {
+function renderSettingsForm(string $message, string $error, string $csrfToken, array $config, bool $totpActive, bool $totpCanSetup, string $pendingSecret, string $totpSecret, string $otpauth): void {
+    $currentStorage = $config['storage'] ?? 'file';
+    $storeSubnet = !empty($config['store_subnet']);
+    $geoLookup = !empty($config['geo_lookup']);
+    $collectReferrer = !empty($config['collect_referrer']);
+    $collectLang = !empty($config['collect_lang']);
+    $collectPage = !empty($config['collect_page']);
+    $collectTimezone = !empty($config['collect_timezone']);
+    $collectOs = !empty($config['collect_os'] ?? true);
+    $retentionDays = (int)($config['retention_days'] ?? 0);
+    $qualityMinDur = (int)($config['quality_min_duration'] ?? 10);
+    $qualityMinInt = (int)($config['quality_min_interactions'] ?? 1);
+    $hasPassword = $config['password'] !== '';
 ?>
 <div class="container-narrow">
 
@@ -9,6 +21,7 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 
 <div class="card">
 <form method="post">
+
 <input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
 
 <h4 class="section-heading">Storage backend</h4>
@@ -37,15 +50,11 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 <div class="form-group form-group-inline">
 <label><input type="checkbox" name="collect_os" value="1" <?=$collectOs?'checked':''?>> Operating system</label>
 </div>
-
-<h4 class="section-heading">Privacy settings</h4>
-
 <div class="form-group">
-<label><input type="checkbox" name="store_subnet" value="1" <?=$storeSubnet?'checked':''?>> Store visitor subnet (e.g. 192.168.1.0/24)</label>
+<label><input type="checkbox" name="store_subnet" value="1" <?=$storeSubnet?'checked':''?>> Subnet (e.g. 192.168.1.0/24)</label>
 </div>
-
 <div class="form-group">
-<label><input type="checkbox" name="geo_lookup" value="1" <?=$geoLookup?'checked':''?>> Look up geo location from IP (not stored)</label>
+<label><input type="checkbox" name="geo_lookup" value="1" <?=$geoLookup?'checked':''?>> Look up geo location from IP</label>
 </div>
 
 <h4 class="section-heading">Auto-cleanup</h4>
@@ -68,14 +77,16 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 </div>
 
 <button type="submit" name="save_settings" class="btn">Save</button>
-</form>
 
-<hr class="mt-24">
+</form>
+</div>
+
+<div class="card">
+<form method="post">
+
+<input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
 
 <h4 class="section-heading">Change password</h4>
-
-<form method="post">
-<input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
 
 <?php if ($hasPassword): ?>
 <div class="form-group">
@@ -83,12 +94,14 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 <input type="password" name="old_password" id="old_password" placeholder="Required to change password">
 </div>
 <?php endif; ?>
+
 <div class="form-group">
 <label for="new_password"><?=$hasPassword?'New password':'Set access password'?></label>
 <input type="password" name="new_password" id="new_password" placeholder="<?=$hasPassword?'Enter new password':'Enter password'?>">
 </div>
 
 <button type="submit" name="save_password" class="btn">Change Password</button>
+
 </form>
 
 <h4 class="section-heading">Two-factor authentication</h4>
@@ -100,7 +113,6 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 <input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
 <button type="submit" name="totp_disable" class="btn btn-danger">Disable TOTP</button>
 </form>
-
 <?php elseif ($totpCanSetup): ?>
 <p class="text-muted mb-8">Scan this URI with your authenticator app, then enter the 6-digit code below to verify.</p>
 <div class="secret select-all"><?=htmlspecialchars($pendingSecret)?></div>
@@ -115,7 +127,6 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 </div>
 <button type="submit" name="totp_verify" class="btn">Verify &amp; enable</button>
 </form>
-
 <?php elseif (!$hasPassword): ?>
 <p class="text-muted">Set a password first to enable two-factor authentication.</p>
 <?php endif; ?>
@@ -245,17 +256,6 @@ function serveSettings() {
     }
 
     $hasPassword = $config['password'] !== '';
-    $currentStorage = $config['storage'];
-    $storeSubnet = !empty($config['store_subnet']);
-    $geoLookup = !empty($config['geo_lookup']);
-    $collectReferrer = !empty($config['collect_referrer']);
-    $collectLang = !empty($config['collect_lang']);
-    $collectPage = !empty($config['collect_page']);
-    $collectTimezone = !empty($config['collect_timezone']);
-    $collectOs = !empty($config['collect_os'] ?? true);
-    $retentionDays = (int)($config['retention_days'] ?? 0);
-    $qualityMinDur = (int)($config['quality_min_duration'] ?? 10);
-    $qualityMinInt = (int)($config['quality_min_interactions'] ?? 1);
 
     $totpActive = $totpSecret !== '';
     $totpCanSetup = !$totpActive && $hasPassword;
@@ -271,6 +271,6 @@ function serveSettings() {
     header('Content-Type: text/html; charset=utf-8');
     renderHead('Settings');
     renderTop('settings');
-    renderSettingsForm($message, $error, $csrfToken, $currentStorage, $storeSubnet, $geoLookup, $collectReferrer, $collectLang, $collectPage, $collectTimezone, $collectOs, $retentionDays, $hasPassword, $totpActive, $totpCanSetup, $pendingSecret, $totpSecret, $otpauth, $qualityMinDur, $qualityMinInt);
+    renderSettingsForm($message, $error, $csrfToken, $config, $totpActive, $totpCanSetup, $pendingSecret, $totpSecret, $otpauth);
     renderFooter();
 }
