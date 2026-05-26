@@ -7,20 +7,31 @@ if (!file_exists($configFile) && file_exists($configExample)) {
 }
 $config = file_exists($configFile) ? require $configFile : [];
 $config = array_merge([
-    'password' => '', 'storage' => 'file', 'auth_secret' => '',
-    'store_subnet' => false, 'geo_lookup' => false,
-    'collect_referrer' => true, 'collect_lang' => true, 'collect_page' => true, 'collect_timezone' => false, 'collect_os' => true,
-    'retention_days' => 0, 'rate_limit' => 120,
+    'password' => '',
+    'storage' => 'file',
+    'auth_secret' => '',
+    'store_subnet' => false,
+    'geo_lookup' => false,
+    'collect_referrer' => true,
+    'collect_lang' => true,
+    'collect_page' => true,
+    'collect_timezone' => false,
+    'collect_os' => true,
+    'retention_days' => 0,
+    'rate_limit' => 120,
 ], $config);
 
-$routeJs = isset($_GET['js']);
-$routeApi = isset($_GET['api']);
-$routeView = isset($_GET['view']);
-$routeSettings = isset($_GET['settings']);
-$routeLogout = isset($_GET['logout']);
-$routeTest = isset($_GET['test']);
+$route = match(true) {
+    isset($_GET['logout']) => 'logout',
+    isset($_GET['js']) => 'js',
+    isset($_GET['api']) => 'api',
+    isset($_GET['view']) => 'view',
+    isset($_GET['settings']) => 'settings',
+    isset($_GET['test']) => 'test',
+    default => 'landing',
+};
 
-if ($routeLogout) {
+if ($route === 'logout') {
     if (session_status() === PHP_SESSION_NONE) session_start();
     $_SESSION = [];
     session_destroy();
@@ -28,7 +39,7 @@ if ($routeLogout) {
     return;
 }
 
-if ($routeJs) {
+if ($route === 'js') {
     header('Content-Type: application/javascript; charset=utf-8');
     header('Access-Control-Allow-Origin: *');
     $self = $_SERVER['SCRIPT_NAME'];
@@ -38,15 +49,15 @@ if ($routeJs) {
     if ($config['collect_page']) $dataLines .= "data.page=location.pathname;";
     if ($config['collect_timezone']) $dataLines .= "data.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;";
     echo <<<JS
-(function(){let id=null,start=Date.now(),ints=0,base,lastScroll=0;
-function inc(){ints++}
+window.__butler={id:null,ints:0};(function(){let id=null,start=Date.now(),ints=0,base,lastScroll=0,b=window.__butler;
+function inc(){ints++;b.ints++}
 document.addEventListener('click',inc);
 document.addEventListener('keydown',inc);
-document.addEventListener('scroll',function(){let n=Date.now();if(n-lastScroll>300){ints++;lastScroll=n}},{passive:true});
+document.addEventListener('scroll',function(){let n=Date.now();if(n-lastScroll>300){ints++;b.ints++;lastScroll=n}},{passive:true});
 base=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
 let data={};$dataLines
 function api(m,d){return fetch(base+'?api='+m,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()})}
-api('new',data).then(function(d){id=d.id}).catch(function(){});
+api('new',data).then(function(d){id=d.id;b.id=d.id}).catch(function(){});
 function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);let data={id:id,duration:sec,interactions:ints};
 try{if(navigator.sendBeacon)navigator.sendBeacon(base+'?api=update',JSON.stringify(data));else api('update',data)}catch(e){}}
 document.addEventListener('visibilitychange',function(){document.visibilityState==='hidden'?send():send.s=0},{passive:true});
@@ -55,7 +66,7 @@ JS;
     return;
 }
 
-if ($routeApi) {
+if ($route === 'api') {
     require_once __DIR__ . '/lib/storage.php';
     require_once __DIR__ . '/lib/geo.php';
     require_once __DIR__ . '/lib/ratelimit.php';
@@ -120,7 +131,7 @@ if ($routeApi) {
     return;
 }
 
-if ($routeView) {
+if ($route === 'view') {
     require_once __DIR__ . '/lib/storage.php';
     require_once __DIR__ . '/lib/auth.php';
     require_once __DIR__ . '/lib/view.php';
@@ -128,14 +139,14 @@ if ($routeView) {
     return;
 }
 
-if ($routeSettings) {
+if ($route === 'settings') {
     require_once __DIR__ . '/lib/auth.php';
     require_once __DIR__ . '/lib/settings.php';
     serveSettings();
     return;
 }
 
-if ($routeTest) {
+if ($route === 'test') {
     require_once __DIR__ . '/lib/test.php';
     serveTest();
     return;

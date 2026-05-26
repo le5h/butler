@@ -1,14 +1,14 @@
 <?php
 
-function renderTestPage(string $scriptName, string $dataLines): void {
+function renderTestPage(): void {
 ?>
 <div class="container-narrow">
 
 <div class="card">
 <h4 class="section-heading">Live status</h4>
 <div id="status" class="test-status">
-  <div class="test-row"><span class="test-label">Tracker</span><span class="test-val" id="s-tracker">waiting...</span></div>
-  <div class="test-row"><span class="test-label">Visit ID</span><span class="test-val mono" id="s-id">—</span></div>
+  <div class="test-row"><span class="test-label">Tracker</span><span class="test-val test-ok" id="s-tracker">loaded</span></div>
+  <div class="test-row"><span class="test-label">Visit ID</span><span class="test-val mono" id="s-id">waiting...</span></div>
   <div class="test-row"><span class="test-label">Interactions</span><span class="test-val" id="s-clicks">0</span></div>
   <div class="test-row"><span class="test-label">Elapsed</span><span class="test-val" id="s-elapsed">0s</span></div>
   <div class="test-row"><span class="test-label">Auto-update</span><span class="test-val" id="s-auto">on tab hide</span></div>
@@ -45,106 +45,19 @@ function renderTestPage(string $scriptName, string $dataLines): void {
 
 </div>
 
+<script src="?js"></script>
 <script>
-(function(){
-  const base = '<?=$scriptName?>';
-  const start = Date.now();
-  let clicks = 0, visitId = null;
-  const el = {
-    tracker: document.getElementById('s-tracker'),
-    id: document.getElementById('s-id'),
-    clicks: document.getElementById('s-clicks'),
-    elapsed: document.getElementById('s-elapsed'),
-    auto: document.getElementById('s-auto'),
-    update: document.getElementById('s-update'),
-    response: document.getElementById('s-response'),
-  };
-
-  el.tracker.textContent = 'loaded';
-  el.tracker.className = 'test-val test-ok';
-
-  document.addEventListener('click', function(){ clicks++; tick(); });
-  document.addEventListener('keydown', function(){ clicks++; tick(); });
-  let lastScroll=0; document.addEventListener('scroll', function(){ const n=Date.now(); if (n-lastScroll>300) { clicks++; lastScroll=n; tick(); } });
-
-  function tick() {
-    el.clicks.textContent = clicks;
-    el.elapsed.textContent = ((Date.now() - start) / 1e3).toFixed(1) + 's';
-  }
-
-  setInterval(tick, 1000);
-
-  const data = {};
-  <?=$dataLines?>
-
-  function api(method, body) {
-    return fetch(base + '?api=' + method, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }).then(function(r){ return r.json() });
-  }
-
-  api('new', data).then(function(d){
-    visitId = d.id;
-    el.id.textContent = d.id;
-    el.update.textContent = 'ready';
-    el.update.className = 'test-val test-ok';
-  }).catch(function(){
-    el.tracker.textContent = 'new failed';
-    el.tracker.className = 'test-val test-err';
-  });
-
-  function send() {
-    if (!visitId || send.s) return; send.s = 1;
-    const sec = ((Date.now() - start) / 1e3).toFixed(1);
-    api('update', { id: visitId, duration: sec, interactions: clicks });
-  }
-
-  document.addEventListener('visibilitychange', function(){
-    if (document.visibilityState === 'hidden') send(); else send.s = 0;
-  });
-  window.addEventListener('beforeunload', send);
-
-  document.getElementById('btn-update').addEventListener('click', function(){
-    if (!visitId) {
-      el.update.textContent = 'no visit ID yet';
-      el.update.className = 'test-val test-err';
-      return;
-    }
-
-    const sec = ((Date.now() - start) / 1e3).toFixed(1);
-
-    el.update.textContent = 'sending...';
-    el.update.className = 'test-val';
-
-    api('update', { id: visitId, duration: sec, interactions: clicks })
-    .then(function(d){
-      el.update.textContent = d.ok ? 'sent OK' : 'failed';
-      el.update.className = 'test-val ' + (d.ok ? 'test-ok' : 'test-err');
-      el.response.textContent = JSON.stringify(d, null, 2);
-    }).catch(function(err){
-      el.update.textContent = 'error';
-      el.update.className = 'test-val test-err';
-      el.response.textContent = String(err);
-    });
-  });
-})();
-</script>
+(function(){var s=document.getElementById('s-id'),c=document.getElementById('s-clicks'),e=document.getElementById('s-elapsed'),u=document.getElementById('s-update'),r=document.getElementById('s-response'),a=document.getElementById('s-auto'),start=Date.now(),base=window.__butler?document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'<?=$_SERVER['SCRIPT_NAME']?>':'';
+function tick(){var b=window.__butler;if(b){if(b.id){s.textContent=b.id;u.textContent='ready'}c.textContent=b.ints}e.textContent=((Date.now()-start)/1e3).toFixed(1)+'s'}setInterval(tick,200);
+document.getElementById('btn-update').addEventListener('click',function(){var b=window.__butler;if(!b||!b.id){u.textContent='no ID yet';return}u.textContent='sending...';fetch(base+'?api=update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.id,duration:((Date.now()-start)/1e3).toFixed(1),interactions:b.ints})}).then(function(r){return r.json()}).then(function(d){u.textContent=d.ok?'sent OK':'failed';r.textContent=JSON.stringify(d,null,2)}).catch(function(err){u.textContent='error';r.textContent=String(err)})})})();</script>
 <?php
 }
 
 function serveTest() {
-    $scriptName = $_SERVER['SCRIPT_NAME'];
-    $dataLines = '';
-    if ($GLOBALS['config']['collect_referrer']) $dataLines .= "data.referrer=document.referrer;";
-    if ($GLOBALS['config']['collect_lang']) $dataLines .= "data.lang=navigator.language;";
-    if ($GLOBALS['config']['collect_page']) $dataLines .= "data.page=location.pathname;";
-    if ($GLOBALS['config']['collect_timezone']) $dataLines .= "data.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;";
     require_once __DIR__ . '/common.php';
     header('Content-Type: text/html; charset=utf-8');
     renderHead('Test');
     renderTop('test');
-    renderTestPage($scriptName, $dataLines);
+    renderTestPage();
     renderFooter();
 }
