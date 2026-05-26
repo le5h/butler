@@ -11,30 +11,31 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 <form method="post">
 <input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
 
-<h4 class="section-heading">What to track</h4>
+<h4 class="section-heading">Storage backend</h4>
 
 <div class="form-group">
-<label for="storage">Storage backend</label>
-<select name="storage" id="storage">
+<select name="storage">
 <option value="file" <?=$currentStorage==='file'?'selected':''?>>File (zero setup)</option>
 <option value="sqlite" <?=$currentStorage==='sqlite'?'selected':''?>>SQLite (faster queries)</option>
 </select>
 </div>
 
+<h4 class="section-heading">What to track</h4>
+
 <div class="form-group form-group-inline">
-<label><input type="checkbox" name="collect_page" value="1" <?=$collectPage?'checked':''?>> Collect page URL</label>
+<label><input type="checkbox" name="collect_page" value="1" <?=$collectPage?'checked':''?>> Page URL</label>
 </div>
 <div class="form-group form-group-inline">
-<label><input type="checkbox" name="collect_referrer" value="1" <?=$collectReferrer?'checked':''?>> Collect referrer URL</label>
+<label><input type="checkbox" name="collect_referrer" value="1" <?=$collectReferrer?'checked':''?>> Referrer URL</label>
 </div>
 <div class="form-group form-group-inline">
-<label><input type="checkbox" name="collect_lang" value="1" <?=$collectLang?'checked':''?>> Collect browser language</label>
+<label><input type="checkbox" name="collect_lang" value="1" <?=$collectLang?'checked':''?>> Browser language</label>
 </div>
 <div class="form-group form-group-inline">
-<label><input type="checkbox" name="collect_timezone" value="1" <?=$collectTimezone?'checked':''?>> Collect timezone</label>
+<label><input type="checkbox" name="collect_timezone" value="1" <?=$collectTimezone?'checked':''?>> Timezone</label>
 </div>
 <div class="form-group form-group-inline">
-<label><input type="checkbox" name="collect_os" value="1" <?=$collectOs?'checked':''?>> Collect OS from User-Agent</label>
+<label><input type="checkbox" name="collect_os" value="1" <?=$collectOs?'checked':''?>> Operating system</label>
 </div>
 
 <h4 class="section-heading">Privacy settings</h4>
@@ -66,7 +67,15 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 <input type="number" name="quality_min_interactions" id="quality_min_interactions" value="<?=$qualityMinInt?>" min="0" max="9999">
 </div>
 
-<h4 class="section-heading">Admin access</h4>
+<button type="submit" name="save_settings" class="btn">Save</button>
+</form>
+
+<hr class="mt-24">
+
+<h4 class="section-heading">Change password</h4>
+
+<form method="post">
+<input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
 
 <?php if ($hasPassword): ?>
 <div class="form-group">
@@ -75,11 +84,11 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 </div>
 <?php endif; ?>
 <div class="form-group">
-<label for="new_password"><?=$hasPassword?'New password (leave blank to keep current)':'Set access password'?></label>
+<label for="new_password"><?=$hasPassword?'New password':'Set access password'?></label>
 <input type="password" name="new_password" id="new_password" placeholder="<?=$hasPassword?'Enter new password':'Enter password'?>">
 </div>
 
-<button type="submit" class="btn">Save</button>
+<button type="submit" name="save_password" class="btn">Change Password</button>
 </form>
 
 <h4 class="section-heading">Two-factor authentication</h4>
@@ -115,6 +124,43 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 
 </div>
 <?php
+}
+
+function saveSettings(): string {
+    global $config, $configFile;
+    $storage = $_POST['storage'] ?? 'file';
+    if (!preg_match('/^(file|sqlite)$/', $storage)) return 'Invalid storage type.';
+    $config['storage'] = $storage;
+    $config['store_subnet'] = !empty($_POST['store_subnet']);
+    $config['geo_lookup'] = !empty($_POST['geo_lookup']);
+    $config['collect_referrer'] = !empty($_POST['collect_referrer']);
+    $config['collect_lang'] = !empty($_POST['collect_lang']);
+    $config['collect_page'] = !empty($_POST['collect_page']);
+    $config['collect_timezone'] = !empty($_POST['collect_timezone']);
+    $config['collect_os'] = !empty($_POST['collect_os']);
+    $config['quality_min_duration'] = max(0, (int)($_POST['quality_min_duration'] ?? 10));
+    $config['quality_min_interactions'] = max(0, (int)($_POST['quality_min_interactions'] ?? 1));
+    $config['retention_days'] = max(0, (int)($_POST['retention_days'] ?? 0));
+    $written = file_put_contents($configFile, '<?php' . "\n\nreturn " . var_export($config, true) . ";\n", LOCK_EX);
+    if ($written === false) return 'Failed to write config file. Check permissions.';
+    $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
+    $_SESSION['_settings_message'] = 'Configuration saved.';
+    return '';
+}
+
+function savePassword(): string {
+    global $config, $configFile;
+    if ($config['password'] !== '' && !password_verify($_POST['old_password'] ?? '', $config['password'])) {
+        return 'Current password is incorrect.';
+    }
+    $newPwd = $_POST['new_password'] ?? '';
+    if ($newPwd === '') return 'New password cannot be empty.';
+    $config['password'] = password_hash($newPwd, PASSWORD_BCRYPT);
+    $written = file_put_contents($configFile, '<?php' . "\n\nreturn " . var_export($config, true) . ";\n", LOCK_EX);
+    if ($written === false) return 'Failed to write config file. Check permissions.';
+    $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
+    $_SESSION['_settings_message'] = 'Password updated.';
+    return '';
 }
 
 function serveSettings() {
@@ -181,44 +227,21 @@ function serveSettings() {
                 $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
                 $csrfToken = $_SESSION['settings_csrf'];
             }
-        } else {
-            $storage = $_POST['storage'] ?? 'file';
-
-            if (!preg_match('/^(file|sqlite)$/', $storage)) {
-                $error = 'Invalid storage type.';
-            } elseif ($config['password'] !== '' && !empty($_POST['new_password']) && !password_verify($_POST['old_password'] ?? '', $config['password'])) {
-                $error = 'Current password is incorrect.';
-            } else {
-                $config['storage'] = $storage;
-                $config['store_subnet'] = !empty($_POST['store_subnet']);
-                $config['geo_lookup'] = !empty($_POST['geo_lookup']);
-                $config['collect_referrer'] = !empty($_POST['collect_referrer']);
-                $config['collect_lang'] = !empty($_POST['collect_lang']);
-                $config['collect_page'] = !empty($_POST['collect_page']);
-                $config['collect_timezone'] = !empty($_POST['collect_timezone']);
-                $config['collect_os'] = !empty($_POST['collect_os']);
-                $config['quality_min_duration'] = max(0, (int)($_POST['quality_min_duration'] ?? 10));
-                $config['quality_min_interactions'] = max(0, (int)($_POST['quality_min_interactions'] ?? 1));
-                $retention = (int)($_POST['retention_days'] ?? 0);
-                $config['retention_days'] = max(0, $retention);
-                $newPwd = $_POST['new_password'] ?? '';
-                if ($newPwd !== '') {
-                    $config['password'] = password_hash($newPwd, PASSWORD_BCRYPT);
-                }
-                $written = file_put_contents(
-                    $configFile,
-                    '<?php' . "\n\nreturn " . var_export($config, true) . ";\n",
-                    LOCK_EX
-                );
-                if ($written === false) {
-                    $error = 'Failed to write config file. Check permissions.';
-                } else {
-                    $message = 'Configuration saved.';
-                    $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
-                    $csrfToken = $_SESSION['settings_csrf'];
-                }
-            }
+        } elseif (isset($_POST['save_settings'])) {
+            $error = saveSettings();
+        } elseif (isset($_POST['save_password'])) {
+            $error = savePassword();
         }
+    }
+
+    if ($message === '' && !empty($_SESSION['_settings_message'])) {
+        $message = $_SESSION['_settings_message'];
+        unset($_SESSION['_settings_message']);
+        $csrfToken = $_SESSION['settings_csrf'];
+    }
+    if ($error === '' && !empty($_SESSION['_settings_error'])) {
+        $error = $_SESSION['_settings_error'];
+        unset($_SESSION['_settings_error']);
     }
 
     $hasPassword = $config['password'] !== '';
