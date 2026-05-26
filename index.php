@@ -21,17 +21,11 @@ $config = array_merge([
     'rate_limit' => 120,
 ], $config);
 
-$route = match(true) {
-    isset($_GET['logout']) => 'logout',
-    isset($_GET['js']) => 'js',
-    isset($_GET['api']) => 'api',
-    isset($_GET['view']) => 'view',
-    isset($_GET['settings']) => 'settings',
-    isset($_GET['test']) => 'test',
-    default => 'landing',
-};
+function route($path): bool {
+    return isset($_GET[$path]);
+}
 
-if ($route === 'logout') {
+if (route('logout')) {
     if (session_status() === PHP_SESSION_NONE) session_start();
     $_SESSION = [];
     session_destroy();
@@ -39,23 +33,30 @@ if ($route === 'logout') {
     return;
 }
 
-if ($route === 'js') {
-    header('Content-Type: application/javascript; charset=utf-8');
-    header('Access-Control-Allow-Origin: *');
+if (route('js')) {
     $self = $_SERVER['SCRIPT_NAME'];
     $dataLines = '';
-    if ($config['collect_referrer']) $dataLines .= "data.referrer=document.referrer;";
-    if ($config['collect_lang']) $dataLines .= "data.lang=navigator.language;";
-    if ($config['collect_page']) $dataLines .= "data.page=location.pathname;";
-    if ($config['collect_timezone']) $dataLines .= "data.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;";
+    $configToCode = [
+        'collect_referrer' => "referrer:document.referrer",
+        'collect_lang' => "lang:navigator.language",
+        'collect_page' => "page:location.pathname",
+        'collect_timezone' => "timezone:Intl.DateTimeFormat().resolvedOptions().timeZone",
+    ];
+    foreach ($configToCode as $key => $code) {
+        if (!empty($config[$key])) $dataLines .= $code . ",";
+    }
+    header('Content-Type: application/javascript; charset=utf-8');
+    header('Access-Control-Allow-Origin: *');
     echo <<<JS
-window.__butler={id:null,ints:0};(function(){let id=null,start=Date.now(),ints=0,base,lastScroll=0,b=window.__butler;
+window.__butler={id:null,ints:0};
+(function(){
+let id=null,start=Date.now(),ints=0,base,lastScroll=0,b=window.__butler;
 function inc(){ints++;b.ints++}
 document.addEventListener('click',inc);
 document.addEventListener('keydown',inc);
 document.addEventListener('scroll',function(){let n=Date.now();if(n-lastScroll>300){ints++;b.ints++;lastScroll=n}},{passive:true});
 base=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
-let data={};$dataLines
+let data={$dataLines};
 function api(m,d){return fetch(base+'?api='+m,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()})}
 api('new',data).then(function(d){id=d.id;b.id=d.id}).catch(function(){});
 function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);let data={id:id,duration:sec,interactions:ints};
@@ -66,7 +67,7 @@ JS;
     return;
 }
 
-if ($route === 'api') {
+if (route('api')) {
     require_once __DIR__ . '/lib/storage.php';
     require_once __DIR__ . '/lib/geo.php';
     require_once __DIR__ . '/lib/ratelimit.php';
@@ -131,7 +132,7 @@ if ($route === 'api') {
     return;
 }
 
-if ($route === 'view') {
+if (route('view')) {
     require_once __DIR__ . '/lib/storage.php';
     require_once __DIR__ . '/lib/auth.php';
     require_once __DIR__ . '/lib/view.php';
@@ -139,14 +140,14 @@ if ($route === 'view') {
     return;
 }
 
-if ($route === 'settings') {
+if (route('settings')) {
     require_once __DIR__ . '/lib/auth.php';
     require_once __DIR__ . '/lib/settings.php';
     serveSettings();
     return;
 }
 
-if ($route === 'test') {
+if (route('test')) {
     require_once __DIR__ . '/lib/test.php';
     serveTest();
     return;
