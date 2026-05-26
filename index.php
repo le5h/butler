@@ -32,24 +32,19 @@ if ($routeJs) {
     header('Content-Type: application/javascript; charset=utf-8');
     header('Access-Control-Allow-Origin: *');
     $self = $_SERVER['SCRIPT_NAME'];
-    $collect = json_encode([
-        'referrer' => (bool)$config['collect_referrer'],
-        'lang' => (bool)$config['collect_lang'],
-        'page' => (bool)$config['collect_page'],
-        'timezone' => (bool)$config['collect_timezone'],
-    ]);
+    $dataLines = '';
+    if ($config['collect_referrer']) $dataLines .= "data.referrer=document.referrer;";
+    if ($config['collect_lang']) $dataLines .= "data.lang=navigator.language;";
+    if ($config['collect_page']) $dataLines .= "data.page=location.pathname;";
+    if ($config['collect_timezone']) $dataLines .= "data.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;";
     echo <<<JS
-(function(){let id=null,start=Date.now(),ints=0,collect=$collect,base,lastScroll=0;
+(function(){let id=null,start=Date.now(),ints=0,base,lastScroll=0;
 function inc(){ints++}
 document.addEventListener('click',inc);
 document.addEventListener('keydown',inc);
 document.addEventListener('scroll',function(){let n=Date.now();if(n-lastScroll>300){ints++;lastScroll=n}},{passive:true});
 base=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
-let data={};
-if(collect.referrer)data.referrer=document.referrer;
-if(collect.lang)data.lang=navigator.language;
-if(collect.page)data.page=location.pathname;
-if(collect.timezone)data.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+let data={};$dataLines
 function api(m,d){return fetch(base+'?api='+m,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()})}
 api('new',data).then(function(d){id=d.id}).catch(function(){});
 function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);let data={id:id,duration:sec,interactions:ints};

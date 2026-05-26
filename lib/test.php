@@ -1,6 +1,6 @@
 <?php
 
-function renderTestPage(string $scriptName, string $collectFlags): void {
+function renderTestPage(string $scriptName, string $dataLines): void {
 ?>
 <div class="container-narrow">
 
@@ -74,12 +74,8 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
 
   setInterval(tick, 1000);
 
-  const flags = <?=$collectFlags?>;
   const data = {};
-  if (flags.referrer) data.referrer = document.referrer;
-  if (flags.lang) data.lang = navigator.language;
-  if (flags.page) data.page = location.pathname;
-  if (flags.timezone) data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  <?=$dataLines?>
 
   function api(method, body) {
     return fetch(base + '?api=' + method, {
@@ -140,16 +136,15 @@ function renderTestPage(string $scriptName, string $collectFlags): void {
 
 function serveTest() {
     $scriptName = $_SERVER['SCRIPT_NAME'];
-    $collectFlags = json_encode([
-        'referrer' => (bool)$GLOBALS['config']['collect_referrer'],
-        'lang' => (bool)$GLOBALS['config']['collect_lang'],
-        'page' => (bool)$GLOBALS['config']['collect_page'],
-        'timezone' => (bool)$GLOBALS['config']['collect_timezone'],
-    ]);
+    $dataLines = '';
+    if ($GLOBALS['config']['collect_referrer']) $dataLines .= "data.referrer=document.referrer;";
+    if ($GLOBALS['config']['collect_lang']) $dataLines .= "data.lang=navigator.language;";
+    if ($GLOBALS['config']['collect_page']) $dataLines .= "data.page=location.pathname;";
+    if ($GLOBALS['config']['collect_timezone']) $dataLines .= "data.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;";
     require_once __DIR__ . '/common.php';
     header('Content-Type: text/html; charset=utf-8');
     renderHead('Test');
     renderTop('test');
-    renderTestPage($scriptName, $collectFlags);
+    renderTestPage($scriptName, $dataLines);
     renderFooter();
 }
