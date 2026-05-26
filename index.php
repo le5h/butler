@@ -45,6 +45,7 @@ if (route('js')) {
     foreach ($configToCode as $key => $code) {
         if (!empty($config[$key])) $dataLines .= $code . ",";
     }
+    $dataObj = '{' . $dataLines . '}';
     header('Content-Type: application/javascript; charset=utf-8');
     header('Access-Control-Allow-Origin: *');
     echo <<<JS
@@ -56,7 +57,7 @@ document.addEventListener('click',inc);
 document.addEventListener('keydown',inc);
 document.addEventListener('scroll',function(){let n=Date.now();if(n-lastScroll>300){ints++;b.ints++;lastScroll=n}},{passive:true});
 base=document.currentScript&&document.currentScript.src?document.currentScript.src.split('?')[0]:'$self';
-let data={$dataLines};b.data=data;
+let data=$dataObj;b.data=data;
 function api(m,d){return fetch(base+'?api='+m,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json()})}
 api('new',data).then(function(d){id=d.id;b.id=d.id}).catch(function(){b.err='new failed'});
 function send(){if(!id||send.s)return;send.s=1;let sec=((Date.now()-start)/1e3).toFixed(1);let data={id:id,duration:sec,interactions:ints};
