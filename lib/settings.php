@@ -1,6 +1,6 @@
 <?php
 
-function renderSettingsForm(string $message, string $error, string $csrfToken, string $currentStorage, bool $storeSubnet, bool $geoLookup, bool $collectReferrer, bool $collectLang, bool $collectPage, bool $collectTimezone, bool $collectOs, int $retentionDays, bool $hasPassword, bool $totpActive, bool $totpCanSetup, string $pendingSecret, string $totpSecret, string $otpauth): void {
+function renderSettingsForm(string $message, string $error, string $csrfToken, string $currentStorage, bool $storeSubnet, bool $geoLookup, bool $collectReferrer, bool $collectLang, bool $collectPage, bool $collectTimezone, bool $collectOs, int $retentionDays, bool $hasPassword, bool $totpActive, bool $totpCanSetup, string $pendingSecret, string $totpSecret, string $otpauth, int $qualityMinDur, int $qualityMinInt): void {
 ?>
 <div class="container-narrow">
 
@@ -52,6 +52,18 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, s
 <div class="form-group">
 <label for="retention_days">Auto-cleanup (days, 0 = never)</label>
 <input type="number" name="retention_days" id="retention_days" value="<?=$retentionDays?>" min="0" max="3650">
+</div>
+
+<h4 class="section-heading">Quality thresholds</h4>
+
+<div class="form-group">
+<label for="quality_min_duration">Min duration (seconds) for engaged visit</label>
+<input type="number" name="quality_min_duration" id="quality_min_duration" value="<?=$qualityMinDur?>" min="0" max="3600">
+</div>
+
+<div class="form-group">
+<label for="quality_min_interactions">Min interactions for engaged visit</label>
+<input type="number" name="quality_min_interactions" id="quality_min_interactions" value="<?=$qualityMinInt?>" min="0" max="9999">
 </div>
 
 <h4 class="section-heading">Admin access</h4>
@@ -185,6 +197,8 @@ function serveSettings() {
                 $config['collect_page'] = !empty($_POST['collect_page']);
                 $config['collect_timezone'] = !empty($_POST['collect_timezone']);
                 $config['collect_os'] = !empty($_POST['collect_os']);
+                $config['quality_min_duration'] = max(0, (int)($_POST['quality_min_duration'] ?? 10));
+                $config['quality_min_interactions'] = max(0, (int)($_POST['quality_min_interactions'] ?? 1));
                 $retention = (int)($_POST['retention_days'] ?? 0);
                 $config['retention_days'] = max(0, $retention);
                 $newPwd = $_POST['new_password'] ?? '';
@@ -217,6 +231,8 @@ function serveSettings() {
     $collectTimezone = !empty($config['collect_timezone']);
     $collectOs = !empty($config['collect_os'] ?? true);
     $retentionDays = (int)($config['retention_days'] ?? 0);
+    $qualityMinDur = (int)($config['quality_min_duration'] ?? 10);
+    $qualityMinInt = (int)($config['quality_min_interactions'] ?? 1);
 
     $totpActive = $totpSecret !== '';
     $totpCanSetup = !$totpActive && $hasPassword;
@@ -232,6 +248,6 @@ function serveSettings() {
     header('Content-Type: text/html; charset=utf-8');
     renderHead('Settings');
     renderTop('settings');
-    renderSettingsForm($message, $error, $csrfToken, $currentStorage, $storeSubnet, $geoLookup, $collectReferrer, $collectLang, $collectPage, $collectTimezone, $collectOs, $retentionDays, $hasPassword, $totpActive, $totpCanSetup, $pendingSecret, $totpSecret, $otpauth);
+    renderSettingsForm($message, $error, $csrfToken, $currentStorage, $storeSubnet, $geoLookup, $collectReferrer, $collectLang, $collectPage, $collectTimezone, $collectOs, $retentionDays, $hasPassword, $totpActive, $totpCanSetup, $pendingSecret, $totpSecret, $otpauth, $qualityMinDur, $qualityMinInt);
     renderFooter();
 }

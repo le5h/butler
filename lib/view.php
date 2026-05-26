@@ -19,6 +19,9 @@ function butlerReport(array $stats, string $range): string {
 }
 
 function renderViewDashboard(string $report, string $range, array $stats, array $chartData, array $visits, int $page, int $totalPages, string $queryBase): void {
+    global $config;
+    $minDur = (int)($config['quality_min_duration'] ?? 10);
+    $minInt = (int)($config['quality_min_interactions'] ?? 1);
 ?>
 <nav class="range-nav">
 <?php foreach (['day','week','month','all'] as $r):
@@ -66,8 +69,8 @@ function renderViewDashboard(string $report, string $range, array $stats, array 
     $dur = isset($v['duration']) ? round($v['duration'], 1) . 's' : '-';
     $intr = $v['interactions'] ?? 0;
     $qDur = (float)($v['duration'] ?? 0);
-    $qCls = $qDur <= 10 ? ($intr > 0 ? 'q-okay' : 'q-bad') : ($intr > 0 ? 'q-super' : 'q-poor');
-    $qLbl = $qDur <= 10 ? ($intr > 0 ? 'okay' : 'bad') : ($intr > 0 ? 'super' : 'poor');
+    $qCls = $qDur <= $minDur ? ($intr >= $minInt ? 'q-okay' : 'q-bad') : ($intr >= $minInt ? 'q-super' : 'q-poor');
+    $qLbl = $qDur <= $minDur ? ($intr >= $minInt ? 'okay' : 'bad') : ($intr >= $minInt ? 'super' : 'poor');
     $lang = htmlspecialchars($v['lang'] ?? '-');
     $ip = htmlspecialchars($v['ip'] ?? '-');
     $geo = htmlspecialchars($v['geo'] ?? '-');

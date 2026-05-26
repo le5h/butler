@@ -19,6 +19,8 @@ $config = array_merge([
     'collect_os' => true,
     'retention_days' => 0,
     'rate_limit' => 120,
+    'quality_min_duration' => 10,
+    'quality_min_interactions' => 1,
 ], $config);
 
 function route($path): bool {

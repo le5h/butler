@@ -53,9 +53,13 @@ class FileStorage {
     private string $dir;
     private ?array $recordsCache = null;
     private string $cacheRange = '';
+    private int $minDur;
+    private int $minInt;
 
-    public function __construct(string $dir) {
+    public function __construct(string $dir, array $config = []) {
         $this->dir = rtrim($dir, '/\\');
+        $this->minDur = (int)($config['quality_min_duration'] ?? 10);
+        $this->minInt = (int)($config['quality_min_interactions'] ?? 1);
         if (!is_dir($this->dir)) {
             mkdir($this->dir, 0777, true);
         }
@@ -172,7 +176,7 @@ class FileStorage {
             if (!empty($r['os'])) $osCount[$r['os']] = ($osCount[$r['os']] ?? 0) + 1;
             $d = (float)($r['duration'] ?? 0);
             $n = (int)($r['interactions'] ?? 0);
-            $quality[$d <= 10 ? ($n > 0 ? 'okay' : 'bad') : ($n > 0 ? 'super' : 'poor')]++;
+            $quality[$d <= $this->minDur ? ($n >= $this->minInt ? 'okay' : 'bad') : ($n >= $this->minInt ? 'super' : 'poor')]++;
         }
         $topKey = function(array $counts): string {
             if (empty($counts)) return '';
@@ -244,9 +248,13 @@ class FileStorage {
 class SqliteStorage {
     private \PDO $pdo;
     private string $dir;
+    private int $minDur;
+    private int $minInt;
 
-    public function __construct(string $dir) {
+    public function __construct(string $dir, array $config = []) {
         $this->dir = rtrim($dir, '/\\');
+        $this->minDur = (int)($config['quality_min_duration'] ?? 10);
+        $this->minInt = (int)($config['quality_min_interactions'] ?? 1);
         if (!is_dir($this->dir)) {
             mkdir($this->dir, 0777, true);
         }
@@ -348,14 +356,15 @@ class SqliteStorage {
 
         $wQ = $where ? $where : '';
         $quality = ['super' => 0, 'okay' => 0, 'poor' => 0, 'bad' => 0];
-        $qStmt = $this->pdo->query(
-            "SELECT CASE WHEN duration <= 10 AND interactions = 0 THEN 'bad'
-                         WHEN duration <= 10 AND interactions > 0 THEN 'okay'
-                         WHEN duration > 10 AND interactions = 0 THEN 'poor'
-                         WHEN duration > 10 AND interactions > 0 THEN 'super'
+        $qStmt = $this->pdo->prepare(
+            "SELECT CASE WHEN duration <= :minDur AND interactions < :minInt THEN 'bad'
+                         WHEN duration <= :minDur AND interactions >= :minInt THEN 'okay'
+                         WHEN duration > :minDur AND interactions < :minInt THEN 'poor'
+                         WHEN duration > :minDur AND interactions >= :minInt THEN 'super'
                     END as q, COUNT(*) as c
              FROM visits $wQ GROUP BY q"
         );
+        $qStmt->execute([':minDur' => $this->minDur, ':minInt' => $this->minInt]);
         foreach ($qStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
             $quality[$row['q']] = (int)$row['c'];
         }
@@ -417,9 +426,9 @@ function createStorage(array $config): FileStorage|SqliteStorage {
     $dir = __DIR__ . '/../data';
     try {
         return $config['storage'] === 'sqlite'
-            ? new SqliteStorage($dir)
-            : new FileStorage($dir);
+            ? new SqliteStorage($dir, $config)
+            : new FileStorage($dir, $config);
     } catch (\Exception $e) {
-        return new FileStorage($dir);
+        return new FileStorage($dir, $config);
     }
 }
