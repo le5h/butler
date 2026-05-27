@@ -1,10 +1,24 @@
 <?php if (!defined('BUTLER_APP')) exit; ?>
+<div class="range-bar">
 <nav class="range-nav">
 <?php foreach (['day','week','month','all'] as $r):
-    $active = $r === $range ? ' active' : ''; ?>
-<a href="?view&range=<?=$r?>" class="<?=$active?>"><?=ucfirst($r)?></a>
+    $active = $r === $range ? ' active' : '';
+    $href = '?view&range=' . $r;
+    if ($r === 'week') $href .= '&from=' . $defFromWeek;
+    if ($r === 'month') $href .= '&from=' . $defFromMonth;
+    ?>
+<a href="<?=$href?>" class="<?=$active?>"><?=ucfirst($r)?></a>
 <?php endforeach; ?>
 </nav>
+<?php if ($range !== 'all'): ?>
+<div class="range-date-group">
+<button class="range-btn" onclick="adjDate(-1)" type="button">&minus;</button>
+<input type="date" class="range-date" id="range-date" value="<?=$from?:date('Y-m-d')?>" onchange="location='?view&range=<?=$range?>&from='+this.value" title="Start date">
+<button class="range-btn" onclick="adjDate(1)" type="button">&plus;</button>
+<?php if ($from): ?><a href="?view&range=<?=$range?>" class="range-date-clear">&times;</a><?php endif; ?>
+</div>
+<?php endif; ?>
+</div>
 
 <div class="report"><?=htmlspecialchars($report)?></div>
 
@@ -112,4 +126,5 @@ var chart = new Chart(ctx, {
     }
 });
 window.addEventListener('resize', function(){ chart.resize(); });
+function adjDate(n){var e=document.getElementById('range-date'),d=new Date(e.value),r='<?=$range?>';d.setDate(d.getDate()+n);location='?view&range='+r+'&from='+d.toISOString().slice(0,10)}
 </script>

@@ -11,12 +11,16 @@
 
 <h4 class="section-heading">Storage</h4>
 
+<?php $sqliteAvail = extension_loaded('pdo_sqlite'); ?>
 <div class="form-group">
 <label for="storage">Storage backend</label>
 <select name="storage" id="storage">
 <option value="file" <?=$currentStorage==='file'?'selected':''?>>File (zero setup)</option>
-<option value="sqlite" <?=$currentStorage==='sqlite'?'selected':''?>>SQLite (faster queries)</option>
+<option value="sqlite" <?=$currentStorage==='sqlite'?'selected':''?> <?=$sqliteAvail?'':'disabled'?>><?=$sqliteAvail?'SQLite (faster queries)':'SQLite (pdo_sqlite missing)'?></option>
 </select>
+<?php if (!$sqliteAvail && $currentStorage === 'sqlite'): ?>
+<p class="text-muted mt-8">SQLite selected but <code>pdo_sqlite</code> PHP extension is not installed. Falling back to File storage.</p>
+<?php endif; ?>
 </div>
 
 <div class="form-group">

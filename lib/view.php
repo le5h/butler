@@ -18,7 +18,7 @@ function butlerReport(array $stats, string $range): string {
     return "$m.";
 }
 
-function renderViewDashboard(string $report, string $range, array $stats, array $chartData, array $visits, int $page, int $totalPages, string $queryBase): void {
+function renderViewDashboard(string $report, string $range, array $stats, array $chartData, array $visits, int $page, int $totalPages, string $queryBase, string $from = '', string $defFromWeek = '', string $defFromMonth = ''): void {
     global $config;
     $minDur = (int)($config['quality_min_duration'] ?? 10);
     $minInt = (int)($config['quality_min_interactions'] ?? 1);
@@ -34,13 +34,14 @@ function serveView() {
         $storage->cleanup($config['retention_days']);
     }
     $range = $_GET['range'] ?? 'day';
+    $from = $_GET['from'] ?? '';
     $page = max(1, (int)($_GET['page'] ?? 1));
     $perPage = 20;
 
     $export = $_GET['export'] ?? '';
     $exportLimit = (int)($config['export_limit'] ?? 10000);
     if ($export === 'csv' || $export === 'json') {
-        $visits = $storage->getVisits($range, 1, $exportLimit);
+        $visits = $storage->getVisits($range, 1, $exportLimit, $from ?: null);
         if ($export === 'json') {
             header('Content-Type: application/json; charset=utf-8');
             header('Content-Disposition: attachment; filename="stats-' . $range . '-' . date('Y-m-d') . '.json"');
@@ -70,15 +71,20 @@ function serveView() {
         return;
     }
 
-    $total = $storage->getVisitCount($range);
-    $stats = $storage->getStats($range);
-    $visits = $storage->getVisits($range, $page, $perPage);
+    $fromParam = $from ?: null;
+    $total = $storage->getVisitCount($range, $fromParam);
+    $stats = $storage->getStats($range, $fromParam);
+    $visits = $storage->getVisits($range, $page, $perPage, $fromParam);
     $totalPages = max(1, (int)ceil($total / $perPage));
-    $chartData = $storage->getAggregatedStats($range);
+    $chartData = $storage->getAggregatedStats($range, $fromParam);
 
-    $queryBase = "?view&range=$range";
+    $queryBase = "?view&range=$range" . ($from ? "&from=$from" : '');
 
     $report = butlerReport($stats, $range);
+
+    $now = new DateTime();
+    $defFromWeek = (clone $now)->modify('monday this week')->format('Y-m-d');
+    $defFromMonth = (clone $now)->modify('first day of this month')->format('Y-m-d');
 
     require_once __DIR__ . '/common.php';
 
@@ -87,6 +93,6 @@ function serveView() {
     renderHead("Stats - $range");
     renderChartJs();
     renderTop('view');
-    renderViewDashboard($report, $range, $stats, $chartData, $visits, $page, $totalPages, $queryBase);
+    renderViewDashboard($report, $range, $stats, $chartData, $visits, $page, $totalPages, $queryBase, $from, $defFromWeek, $defFromMonth);
     renderFooter();
 }

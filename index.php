@@ -25,7 +25,10 @@ $config = array_merge([
     'quality_min_duration' => 10,
     'quality_min_interactions' => 1,
     'export_limit' => 10000,
+    'timezone' => 'UTC',
 ], $config);
+
+date_default_timezone_set($config['timezone']);
 
 function route($path): bool {
     return isset($_GET[$path]);
@@ -108,6 +111,7 @@ if (route('api')) {
     $method = $_GET['api'] ?? '';
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     if ($method === 'new') {
+        if (session_status() === PHP_SESSION_NONE) @session_start();
         $storage = createStorage($config);
         $data = $config['collect_os'] ? ['os' => detectOS($_SERVER['HTTP_USER_AGENT'] ?? '')] : [];
         if ($config['collect_lang']) $data['lang'] = $input['lang'] ?? '';
@@ -121,7 +125,8 @@ if (route('api')) {
         if ($config['collect_timezone']) $data['timezone'] = $input['timezone'] ?? '';
         if ($config['store_subnet']) $data['ip'] = subnetAddress($ip);
         if ($config['geo_lookup']) $data['geo'] = geoLookup($ip);
-        $id = $storage->newVisit($data);
+        $sessionHash = sessionHash(session_id());
+        $id = $storage->newVisit($data, $sessionHash);
         echo json_encode(['id' => $id]);
         return;
     }

@@ -16,4 +16,5 @@ return [
     'quality_min_duration' => 10,
     'quality_min_interactions' => 1,
     'export_limit' => 10000,
+    'timezone' => 'UTC',
 ];
