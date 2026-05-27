@@ -12,10 +12,16 @@ function fillChartGaps(array $buckets, string $range): array {
         return compact('labels', 'counts', 'durations');
     }
     if ($range === 'all') {
+        if (empty($buckets)) return ['labels' => [], 'counts' => [], 'durations' => []];
         ksort($buckets);
+        $keys = array_keys($buckets);
+        $start = new DateTime(min($keys));
+        $end = (new DateTime(max($keys)))->modify('+1 day');
         $labels = $counts = $durations = [];
-        foreach ($buckets as $key => $b) {
-            $labels[] = date('M j', strtotime($key));
+        foreach (new DatePeriod($start, new DateInterval('P1D'), $end) as $d) {
+            $date = $d->format('Y-m-d');
+            $labels[] = $d->format('M j');
+            $b = $buckets[$date] ?? ['count' => 0, 'avg' => 0];
             $counts[] = $b['count'];
             $durations[] = $b['avg'];
         }

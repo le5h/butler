@@ -20,10 +20,11 @@ $config = array_merge([
     'collect_page' => true,
     'collect_timezone' => false,
     'collect_os' => true,
-    'retention_days' => 0,
+    'retention_days' => 365,
     'rate_limit' => 120,
     'quality_min_duration' => 10,
     'quality_min_interactions' => 1,
+    'export_limit' => 10000,
 ], $config);
 
 function route($path): bool {
@@ -62,10 +63,10 @@ document.addEventListener('click',inc);document.addEventListener('keydown',inc);
 document.addEventListener('scroll',function(){let n=Date.now();n-b.lastScroll>300&&(b.ints++,b.lastScroll=n)},{passive:true});
 b.base=document.currentScript?.src?.split('?')[0]||'$self';
 b.data=$dataObj;
-var api=(m,d)=>fetch(b.base+'?api='+m,{method:'POST',body:JSON.stringify(d),headers:{'Content-Type':'application/json'}}).then(r=>r.json());
+var api=(m,d)=>fetch(b.base+'?api='+m,{method:'POST',body:JSON.stringify(d),headers:{'Content-Type':'application/json'},keepalive:1}).then(r=>r.json());
 api('new',b.data).then(d=>b.id=d.id).catch(()=>b.err='new failed');
 function send(){if(!b.id||send.s)return;send.s=1;let sec=((Date.now()-b.start)/1e3).toFixed(1),data={id:b.id,duration:sec,interactions:b.ints};
-try{navigator.sendBeacon?navigator.sendBeacon(b.base+'?api=update',JSON.stringify(data)):api('update',data)}catch(e){}}
+api('update',data).catch(function(){})}
 document.addEventListener('visibilitychange',function(){document.hidden?send():send.s=0},{passive:true});
 window.addEventListener('pagehide',send,{passive:true});
 })();
@@ -111,7 +112,12 @@ if (route('api')) {
         $data = $config['collect_os'] ? ['os' => detectOS($_SERVER['HTTP_USER_AGENT'] ?? '')] : [];
         if ($config['collect_lang']) $data['lang'] = $input['lang'] ?? '';
         if ($config['collect_referrer']) $data['referrer'] = $input['referrer'] ?? '';
-        if ($config['collect_page']) $data['page'] = $input['page'] ?? '';
+        if ($config['collect_page']) {
+            $raw = $input['page'] ?? '';
+            $raw = explode('?', $raw)[0];
+            $raw = explode('#', $raw)[0];
+            $data['page'] = substr(strip_tags($raw), 0, 500);
+        }
         if ($config['collect_timezone']) $data['timezone'] = $input['timezone'] ?? '';
         if ($config['store_subnet']) $data['ip'] = subnetAddress($ip);
         if ($config['geo_lookup']) $data['geo'] = geoLookup($ip);
@@ -120,7 +126,7 @@ if (route('api')) {
         return;
     }
     if ($method === 'update') {
-        $id = $input['id'] ?? $_GET['id'] ?? '';
+        $id = $input['id'] ?? '';
         if (!$id) {
             http_response_code(400);
             echo json_encode(['error' => 'missing id']);

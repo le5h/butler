@@ -12,6 +12,7 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, a
     $retentionDays = (int)($config['retention_days'] ?? 0);
     $qualityMinDur = (int)($config['quality_min_duration'] ?? 10);
     $qualityMinInt = (int)($config['quality_min_interactions'] ?? 1);
+    $exportLimit = (int)($config['export_limit'] ?? 10000);
     $hasPassword = $config['password'] !== '';
 
     require __DIR__ . '/view/settings.php';
@@ -32,6 +33,7 @@ function saveSettings(): string {
     $config['quality_min_duration'] = max(0, (int)($_POST['quality_min_duration'] ?? 10));
     $config['quality_min_interactions'] = max(0, (int)($_POST['quality_min_interactions'] ?? 1));
     $config['retention_days'] = max(0, (int)($_POST['retention_days'] ?? 0));
+    $config['export_limit'] = max(100, (int)($_POST['export_limit'] ?? 10000));
     $written = file_put_contents($configFile, '<?php' . "\n\nreturn " . var_export($config, true) . ";\n", LOCK_EX);
     if ($written === false) return 'Failed to write config file. Check permissions.';
     $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));

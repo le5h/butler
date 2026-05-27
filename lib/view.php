@@ -38,8 +38,9 @@ function serveView() {
     $perPage = 20;
 
     $export = $_GET['export'] ?? '';
+    $exportLimit = (int)($config['export_limit'] ?? 10000);
     if ($export === 'csv' || $export === 'json') {
-        $visits = $storage->getVisits($range, 1, 999999);
+        $visits = $storage->getVisits($range, 1, $exportLimit);
         if ($export === 'json') {
             header('Content-Type: application/json; charset=utf-8');
             header('Content-Disposition: attachment; filename="stats-' . $range . '-' . date('Y-m-d') . '.json"');

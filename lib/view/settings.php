@@ -9,13 +9,24 @@
 
 <input type="hidden" name="_csrf" value="<?=htmlspecialchars($csrfToken)?>">
 
-<h4 class="section-heading">Storage backend</h4>
+<h4 class="section-heading">Storage</h4>
 
 <div class="form-group">
-<select name="storage">
+<label for="storage">Storage backend</label>
+<select name="storage" id="storage">
 <option value="file" <?=$currentStorage==='file'?'selected':''?>>File (zero setup)</option>
 <option value="sqlite" <?=$currentStorage==='sqlite'?'selected':''?>>SQLite (faster queries)</option>
 </select>
+</div>
+
+<div class="form-group">
+<label for="retention_days">Auto-cleanup (days, 0 = never)</label>
+<input type="number" name="retention_days" id="retention_days" value="<?=$retentionDays?>" min="0" max="3650">
+</div>
+
+<div class="form-group">
+<label for="export_limit">Max rows for CSV/JSON export</label>
+<input type="number" name="export_limit" id="export_limit" value="<?=$exportLimit?>" min="100" max="100000">
 </div>
 
 <h4 class="section-heading">What to track</h4>
@@ -35,21 +46,14 @@
 <div class="form-group form-group-inline">
 <label><input type="checkbox" name="collect_os" value="1" <?=$collectOs?'checked':''?>> Operating system</label>
 </div>
-<div class="form-group">
+<div class="form-group form-group-inline">
 <label><input type="checkbox" name="store_subnet" value="1" <?=$storeSubnet?'checked':''?>> Subnet (e.g. 192.168.1.0/24)</label>
 </div>
-<div class="form-group">
+<div class="form-group form-group-inline">
 <label><input type="checkbox" name="geo_lookup" value="1" <?=$geoLookup?'checked':''?>> Look up geo location from IP</label>
 </div>
 
-<h4 class="section-heading">Auto-cleanup</h4>
-
-<div class="form-group">
-<label for="retention_days">Auto-cleanup (days, 0 = never)</label>
-<input type="number" name="retention_days" id="retention_days" value="<?=$retentionDays?>" min="0" max="3650">
-</div>
-
-<h4 class="section-heading">Quality thresholds</h4>
+<h4 class="section-heading">Presentation</h4>
 
 <div class="form-group">
 <label for="quality_min_duration">Min duration (seconds) for engaged visit</label>
