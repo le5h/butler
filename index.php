@@ -162,15 +162,6 @@ if($_SERVER['REQUEST_METHOD'] === 'GET') {
     header('Content-Type: text/html; charset=utf-8');
     require_once __DIR__ . '/lib/common.php';
     renderHead('Intro');
-?>
-<div class="landing">
-<h1>Butler</h1>
-<p class="tagline">your privacy-first analytics</p>
-<div class="landing-actions">
-<a href="?settings" class="btn">Get started</a>
-<a href="?view" class="btn-outline">View dashboard</a>
-</div>
-</div>
-<?php
+    require __DIR__ . '/lib/view/landing.php';
     renderFooter();
 }
