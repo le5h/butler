@@ -1,4 +1,5 @@
 <?php
+define('BUTLER_APP', true);
 
 $configFile = __DIR__ . '/config.php';
 $configExample = __DIR__ . '/config.example.php';

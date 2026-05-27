@@ -1,3 +1,4 @@
+<?php if (!defined('BUTLER_APP')) exit; ?>
 <div class="container-narrow">
 
 <?php if ($message): ?><div class="msg ok"><?=htmlspecialchars($message)?></div><?php endif; ?>

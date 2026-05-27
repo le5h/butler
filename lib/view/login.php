@@ -1,3 +1,4 @@
+<?php if (!defined('BUTLER_APP')) exit; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

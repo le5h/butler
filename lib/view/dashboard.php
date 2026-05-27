@@ -1,3 +1,4 @@
+<?php if (!defined('BUTLER_APP')) exit; ?>
 <nav class="range-nav">
 <?php foreach (['day','week','month','all'] as $r):
     $active = $r === $range ? ' active' : ''; ?>

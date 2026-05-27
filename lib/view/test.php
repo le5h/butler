@@ -1,3 +1,4 @@
+<?php if (!defined('BUTLER_APP')) exit; ?>
 <div class="container-narrow">
 
 <div class="card">

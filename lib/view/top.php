@@ -1,3 +1,4 @@
+<?php if (!defined('BUTLER_APP')) exit; ?>
 <div class="container">
 <div class="top">
 <div class="top-brand">

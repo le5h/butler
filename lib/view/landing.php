@@ -1,3 +1,4 @@
+<?php if (!defined('BUTLER_APP')) exit; ?>
 <div class="landing">
 <h1>Butler</h1>
 <p class="tagline">your privacy-first analytics</p>
