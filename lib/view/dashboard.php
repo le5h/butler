@@ -90,6 +90,8 @@
 <a href="<?=$queryBase?>&export=json">Export JSON</a>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous"></script>
+
 <script>
 var chartData = <?=json_encode($chartData)?>;
 var ctx = document.getElementById('chart').getContext('2d');
