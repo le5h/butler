@@ -37,7 +37,7 @@
 <div class="card">
 <h4 class="section-heading">Verify</h4>
 <p class="text-muted mb-8">Check the dashboard to see your recorded visit:</p>
-<a href="?view&range=day" class="btn">Open dashboard &rarr;</a>
+<a href="?stats&range=day" class="btn">Open dashboard &rarr;</a>
 </div>
 
 </div>

@@ -1,73 +1,5 @@
 <?php
 
-function sessionHash(string $input): string {
-    $sum = 0;
-    for ($i = 0; $i < strlen($input); $i += 3) {
-        $sum += unpack('N', str_pad(substr($input, $i, 3), 4, "\x00", STR_PAD_LEFT))[1];
-    }
-    while ($sum > 0xFFFFFF) {
-        $t = 0;
-        while ($sum > 0) { $t += $sum & 0xFFFFFF; $sum >>= 24; }
-        $sum = $t;
-    }
-    return sprintf('%06x', $sum);
-}
-
-function fillChartGaps(array $buckets, string $range, ?string $from = null): array {
-    if ($range === 'day') {
-        $labels = $counts = $durations = [];
-        for ($h = 0; $h < 24; $h++) {
-            $labels[] = sprintf('%02d:00', $h);
-            $b = $buckets[$h] ?? ['count' => 0, 'avg' => 0];
-            $counts[] = $b['count'];
-            $durations[] = $b['avg'];
-        }
-        return compact('labels', 'counts', 'durations');
-    }
-    if ($range === 'all') {
-        if (empty($buckets)) return ['labels' => [], 'counts' => [], 'durations' => []];
-        ksort($buckets);
-        $keys = array_keys($buckets);
-        $start = new DateTime(min($keys));
-        $end = (new DateTime(max($keys)))->modify('+1 day');
-        $labels = $counts = $durations = [];
-        foreach (new DatePeriod($start, new DateInterval('P1D'), $end) as $d) {
-            $date = $d->format('Y-m-d');
-            $labels[] = $d->format('M j');
-            $b = $buckets[$date] ?? ['count' => 0, 'avg' => 0];
-            $counts[] = $b['count'];
-            $durations[] = $b['avg'];
-        }
-        return compact('labels', 'counts', 'durations');
-    }
-    if ($from !== null) {
-        $start = new DateTime($from);
-        $end = (clone $start)->modify($range === 'month' ? '+30 days' : '+7 days');
-    } else {
-        $end = new DateTime();
-        $start = (clone $end)->modify($range === 'month' ? '-29 days' : '-6 days');
-    }
-    $labels = $counts = $durations = [];
-    $endInc = (clone $end)->modify('+1 day');
-    foreach (new DatePeriod($start, new DateInterval('P1D'), $endInc) as $d) {
-        $date = $d->format('Y-m-d');
-        $labels[] = $d->format('M j');
-        $b = $buckets[$date] ?? ['count' => 0, 'avg' => 0];
-        $counts[] = $b['count'];
-        $durations[] = $b['avg'];
-    }
-    return compact('labels', 'counts', 'durations');
-}
-
-function trimmedMean(array $vals): float {
-    $n = count($vals);
-    if ($n === 0) return 0;
-    sort($vals);
-    $trim = max(1, (int)ceil($n * 0.05));
-    $keep = array_slice($vals, $trim, $n - 2 * $trim);
-    return empty($keep) ? (float)$vals[(int)floor($n / 2)] : array_sum($keep) / count($keep);
-}
-
 class FileStorage {
     private string $eventDir;
     private string $sumDir;
@@ -213,11 +145,10 @@ class FileStorage {
         return $summaries;
     }
 
-    public function newVisit(array $data, ?string $sessionHash = null): string {
+    public function newVisit(array $data, ?string $id = null): string {
         $date = date('Y-m-d');
         $this->ensureYearDir($date);
-        $hash = $sessionHash ?? bin2hex(random_bytes(4));
-        $id = str_replace('.', '', microtime(true)) . '-' . $hash;
+        $id ??= str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
         $data['id'] = $id;
         $data['timestamp'] = time();
         $line = json_encode(array_filter($data, fn($v) => $v !== ''), JSON_UNESCAPED_SLASHES) . "\n";
@@ -389,9 +320,8 @@ class SqliteStorage {
         }
     }
 
-    public function newVisit(array $data, ?string $sessionHash = null): string {
-        $hash = $sessionHash ?? bin2hex(random_bytes(4));
-        $id = str_replace('.', '', microtime(true)) . '-' . $hash;
+    public function newVisit(array $data, ?string $id = null): string {
+        $id ??= str_replace('.', '', microtime(true)) . '-' . bin2hex(random_bytes(4));
         $stmt = $this->pdo->prepare("INSERT INTO visits (id, timestamp, lang, ip, geo, timezone, os, referrer, page)
             VALUES (:id, :timestamp, :lang, :ip, :geo, :timezone, :os, :referrer, :page)");
         $stmt->execute([

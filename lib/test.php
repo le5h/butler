@@ -5,7 +5,7 @@ function renderTestPage(): void {
 }
 
 function serveTest() {
-    require_once __DIR__ . '/common.php';
+    require_once __DIR__ . '/layout.php';
 
     header('Content-Type: text/html; charset=utf-8');
     

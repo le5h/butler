@@ -3,7 +3,7 @@
 <nav class="range-nav">
 <?php foreach (['day','week','month','all'] as $r):
     $active = $r === $range ? ' active' : '';
-    $href = '?view&range=' . $r;
+    $href = '?stats&range=' . $r;
     if ($r === 'week') $href .= '&from=' . $defFromWeek;
     if ($r === 'month') $href .= '&from=' . $defFromMonth;
     ?>
@@ -13,9 +13,9 @@
 <?php if ($range !== 'all'): ?>
 <div class="range-date-group">
 <button class="range-btn" onclick="adjDate(-1)" type="button">&minus;</button>
-<input type="date" class="range-date" id="range-date" value="<?=$from?:date('Y-m-d')?>" onchange="location='?view&range=<?=$range?>&from='+this.value" title="Start date">
+<input type="date" class="range-date" id="range-date" value="<?=$from?:date('Y-m-d')?>" onchange="location='?stats&range=<?=$range?>&from='+this.value" title="Start date">
 <button class="range-btn" onclick="adjDate(1)" type="button">&plus;</button>
-<?php if ($from): ?><a href="?view&range=<?=$range?>" class="range-date-clear">&times;</a><?php endif; ?>
+<?php if ($from): ?><a href="?stats&range=<?=$range?>" class="range-date-clear">&times;</a><?php endif; ?>
 </div>
 <?php endif; ?>
 </div>
@@ -126,5 +126,5 @@ var chart = new Chart(ctx, {
     }
 });
 window.addEventListener('resize', function(){ chart.resize(); });
-function adjDate(n){var e=document.getElementById('range-date'),d=new Date(e.value),r='<?=$range?>';d.setDate(d.getDate()+n);location='?view&range='+r+'&from='+d.toISOString().slice(0,10)}
+function adjDate(n){var e=document.getElementById('range-date'),d=new Date(e.value),r='<?=$range?>';d.setDate(d.getDate()+n);location='?stats&range='+r+'&from='+d.toISOString().slice(0,10)}
 </script>

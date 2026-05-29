@@ -1,5 +1,60 @@
 <?php
 
+function fillChartGaps(array $buckets, string $range, ?string $from = null): array {
+    if ($range === 'day') {
+        $labels = $counts = $durations = [];
+        for ($h = 0; $h < 24; $h++) {
+            $labels[] = sprintf('%02d:00', $h);
+            $b = $buckets[$h] ?? ['count' => 0, 'avg' => 0];
+            $counts[] = $b['count'];
+            $durations[] = $b['avg'];
+        }
+        return compact('labels', 'counts', 'durations');
+    }
+    if ($range === 'all') {
+        if (empty($buckets)) return ['labels' => [], 'counts' => [], 'durations' => []];
+        ksort($buckets);
+        $keys = array_keys($buckets);
+        $start = new DateTime(min($keys));
+        $end = (new DateTime(max($keys)))->modify('+1 day');
+        $labels = $counts = $durations = [];
+        foreach (new DatePeriod($start, new DateInterval('P1D'), $end) as $d) {
+            $date = $d->format('Y-m-d');
+            $labels[] = $d->format('M j');
+            $b = $buckets[$date] ?? ['count' => 0, 'avg' => 0];
+            $counts[] = $b['count'];
+            $durations[] = $b['avg'];
+        }
+        return compact('labels', 'counts', 'durations');
+    }
+    if ($from !== null) {
+        $start = new DateTime($from);
+        $end = (clone $start)->modify($range === 'month' ? '+30 days' : '+7 days');
+    } else {
+        $end = new DateTime();
+        $start = (clone $end)->modify($range === 'month' ? '-29 days' : '-6 days');
+    }
+    $labels = $counts = $durations = [];
+    $endInc = (clone $end)->modify('+1 day');
+    foreach (new DatePeriod($start, new DateInterval('P1D'), $endInc) as $d) {
+        $date = $d->format('Y-m-d');
+        $labels[] = $d->format('M j');
+        $b = $buckets[$date] ?? ['count' => 0, 'avg' => 0];
+        $counts[] = $b['count'];
+        $durations[] = $b['avg'];
+    }
+    return compact('labels', 'counts', 'durations');
+}
+
+function trimmedMean(array $vals): float {
+    $n = count($vals);
+    if ($n === 0) return 0;
+    sort($vals);
+    $trim = max(1, (int)ceil($n * 0.05));
+    $keep = array_slice($vals, $trim, $n - 2 * $trim);
+    return empty($keep) ? (float)$vals[(int)floor($n / 2)] : array_sum($keep) / count($keep);
+}
+
 function butlerReport(array $stats, string $range): string {
     $hour = (int)date('G');
     $e = $hour < 12 ? "\u{2615}" : ($hour < 18 ? "\u{1F324}" : "\u{1F319}");
@@ -18,16 +73,16 @@ function butlerReport(array $stats, string $range): string {
     return "$m.";
 }
 
-function renderViewDashboard(string $report, string $range, array $stats, array $chartData, array $visits, int $page, int $totalPages, string $queryBase, string $from = '', string $defFromWeek = '', string $defFromMonth = ''): void {
+function renderDashboard(string $report, string $range, array $stats, array $chartData, array $visits, int $page, int $totalPages, string $queryBase, string $from = '', string $defFromWeek = '', string $defFromMonth = ''): void {
     global $config;
     $minDur = (int)($config['quality_min_duration'] ?? 10);
     $minInt = (int)($config['quality_min_interactions'] ?? 1);
     require __DIR__ . '/view/dashboard.php';
 }
 
-function serveView() {
+function serveStats() {
     global $config;
-    if (!checkAuth('view')) return;
+    if (!checkAuth('stats')) return;
 
     $storage = createStorage($config);
     if ($config['retention_days'] > 0) {
@@ -78,7 +133,7 @@ function serveView() {
     $totalPages = max(1, (int)ceil($total / $perPage));
     $chartData = $storage->getAggregatedStats($range, $fromParam);
 
-    $queryBase = "?view&range=$range" . ($from ? "&from=$from" : '');
+    $queryBase = "?stats&range=$range" . ($from ? "&from=$from" : '');
 
     $report = butlerReport($stats, $range);
 
@@ -86,13 +141,13 @@ function serveView() {
     $defFromWeek = (clone $now)->modify('monday this week')->format('Y-m-d');
     $defFromMonth = (clone $now)->modify('first day of this month')->format('Y-m-d');
 
-    require_once __DIR__ . '/common.php';
+    require_once __DIR__ . '/layout.php';
 
     header('Content-Type: text/html; charset=utf-8');
     
     renderHead("Stats - $range");
     renderChartJs();
-    renderTop('view');
-    renderViewDashboard($report, $range, $stats, $chartData, $visits, $page, $totalPages, $queryBase, $from, $defFromWeek, $defFromMonth);
+    renderTop('stats');
+    renderDashboard($report, $range, $stats, $chartData, $visits, $page, $totalPages, $queryBase, $from, $defFromWeek, $defFromMonth);
     renderFooter();
 }

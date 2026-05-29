@@ -20,6 +20,7 @@ $config = array_merge([
     'collect_page' => true,
     'collect_timezone' => false,
     'collect_os' => true,
+    'collect_session' => true,
     'retention_days' => 365,
     'rate_limit' => 120,
     'quality_min_duration' => 10,
@@ -38,7 +39,7 @@ if (route('logout')) {
     if (session_status() === PHP_SESSION_NONE) session_start();
     $_SESSION = [];
     session_destroy();
-    header('Location: ?view');
+    header('Location: ?stats');
     return;
 }
 
@@ -79,18 +80,8 @@ JS;
 
 if (route('api')) {
     require_once __DIR__ . '/lib/storage.php';
-    require_once __DIR__ . '/lib/geo.php';
+    require_once __DIR__ . '/lib/client.php';
     require_once __DIR__ . '/lib/ratelimit.php';
-
-    function getClientIp(): string {
-        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-            return trim($ips[0]);
-        }
-        if (!empty($_SERVER['HTTP_X_REAL_IP'])) return $_SERVER['HTTP_X_REAL_IP'];
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) return $_SERVER['HTTP_CLIENT_IP'];
-        return $_SERVER['REMOTE_ADDR'] ?? '';
-    }
 
     $ip = getClientIp();
     if (!checkRateLimit($ip, $config['rate_limit'] ?? 120)) {
@@ -111,9 +102,9 @@ if (route('api')) {
     $method = $_GET['api'] ?? '';
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $input = array_intersect_key($input, array_flip(['lang', 'referrer', 'page', 'timezone', 'id', 'duration', 'interactions']));
+    $storage = createStorage($config);
     if ($method === 'new') {
-        if (session_status() === PHP_SESSION_NONE) @session_start();
-        $storage = createStorage($config);
+        $id = generateVisitId($config, $ip);
         $data = $config['collect_os'] ? ['os' => detectOS($_SERVER['HTTP_USER_AGENT'] ?? '')] : [];
         if ($config['collect_lang']) $data['lang'] = $input['lang'] ?? '';
         if ($config['collect_referrer']) $data['referrer'] = $input['referrer'] ?? '';
@@ -126,8 +117,7 @@ if (route('api')) {
         if ($config['collect_timezone']) $data['timezone'] = $input['timezone'] ?? '';
         if ($config['store_subnet']) $data['ip'] = subnetAddress($ip);
         if ($config['geo_lookup']) $data['geo'] = geoLookup($ip);
-        $sessionHash = sessionHash(session_id());
-        $id = $storage->newVisit($data, $sessionHash);
+        $storage->newVisit($data, $id);
         echo json_encode(['id' => $id]);
         return;
     }
@@ -138,7 +128,6 @@ if (route('api')) {
             echo json_encode(['error' => 'missing id']);
             return;
         }
-        $storage = createStorage($config);
         $data = [];
         if (isset($input['duration'])) $data['duration'] = (float)$input['duration'];
         if (isset($input['interactions'])) $data['interactions'] = (int)$input['interactions'];
@@ -157,11 +146,11 @@ if (route('settings')) {
     return;
 }
 
-if (route('view')) {
+if (route('stats')) {
     require_once __DIR__ . '/lib/storage.php';
     require_once __DIR__ . '/lib/auth.php';
-    require_once __DIR__ . '/lib/view.php';
-    serveView();
+    require_once __DIR__ . '/lib/stats.php';
+    serveStats();
     return;
 }
 
@@ -173,7 +162,7 @@ if (route('test')) {
 
 if($_SERVER['REQUEST_METHOD'] === 'GET') {
     header('Content-Type: text/html; charset=utf-8');
-    require_once __DIR__ . '/lib/common.php';
+    require_once __DIR__ . '/lib/layout.php';
     renderHead('Intro');
     require __DIR__ . '/lib/view/landing.php';
     renderFooter();

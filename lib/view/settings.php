@@ -51,6 +51,9 @@
 <label><input type="checkbox" name="collect_os" value="1" <?=$collectOs?'checked':''?>> Operating system</label>
 </div>
 <div class="form-group form-group-inline">
+<label><input type="checkbox" name="collect_session" value="1" <?=$collectSession?'checked':''?>> Session-based visit grouping</label>
+</div>
+<div class="form-group form-group-inline">
 <label><input type="checkbox" name="store_subnet" value="1" <?=$storeSubnet?'checked':''?>> Subnet (e.g. 192.168.1.0/24)</label>
 </div>
 <div class="form-group form-group-inline">

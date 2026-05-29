@@ -4,6 +4,6 @@
 <p class="tagline">your privacy-first analytics</p>
 <div class="landing-actions">
 <a href="?settings" class="btn">Get started</a>
-<a href="?view" class="btn-outline">View dashboard</a>
+<a href="?stats" class="btn-outline">View dashboard</a>
 </div>
 </div>

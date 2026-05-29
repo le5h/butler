@@ -6,7 +6,7 @@ function renderHead(string $title): void {
 
 function renderTop(string $active): void {
     $links = [
-        'view' => ['View', '?view'],
+        'stats' => ['Dashboard', '?stats'],
         'settings' => ['Settings', '?settings'],
         'test' => ['Test', '?test'],
         'logout' => ['Logout', '?logout'],

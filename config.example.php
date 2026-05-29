@@ -11,6 +11,7 @@ return [
     'collect_page' => true,
     'collect_timezone' => false,
     'collect_os' => true,
+    'collect_session' => true,
     'retention_days' => 365,
     'rate_limit' => 120,
     'quality_min_duration' => 10,

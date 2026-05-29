@@ -28,7 +28,7 @@ The script auto-detects its own URL via `document.currentScript` — it works fr
 | Route | What it does |
 |---|---|
 | `?js` | Returns the async JS tracker. Embed on the pages you want to monitor. |
-| `?view` | Stats dashboard: bar chart, summary cards, paginated visits, CSV/JSON export. |
+| `?stats` | Stats dashboard: bar chart, summary cards, paginated visits, CSV/JSON export. |
 | `?settings` | Admin panel: data toggles, storage backend, password, TOTP, retention. |
 | `?api=new` | Creates a visit record (POST). Called by the tracker on page load. |
 | `?api=update` | Updates a visit (POST). Called by the tracker on page leave. |
@@ -47,13 +47,13 @@ The snippet from `?js` is a self-executing IIFE with your collection settings ba
 
 ```
 index.php          — router + inline JS/API handlers (hot path, on-demand lib loading)
-lib/storage.php    — FileStorage & SqliteStorage, shared stats helpers
-lib/geo.php        — OS detection + IP geo lookup (ip-api.com, cached)
+lib/storage.php    — FileStorage & SqliteStorage, data persistence
+lib/stats.php      — chart computation, stats functions, dashboard render
+lib/client.php     — IP, OS detection, session hash, geo lookup
 lib/auth.php       — password + TOTP auth via sessions, login form render
-lib/view.php       — dashboard: Chart.js, pagination, export, dashboard render
 lib/settings.php   — admin settings with CSRF protection, settings form render
 lib/test.php       — test page for verifying stats collection, test page render
-lib/common.php     — shared HTML helpers (head, nav, footer, Chart.js)
+lib/layout.php     — shared HTML helpers (head, nav, footer, Chart.js)
 style.css          — single shared stylesheet (dark theme)
 config.php         — your settings (gitignored)
 config.example.php — template without secrets

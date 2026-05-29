@@ -13,6 +13,7 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, a
     $collectPage = !empty($config['collect_page']);
     $collectTimezone = !empty($config['collect_timezone']);
     $collectOs = !empty($config['collect_os'] ?? true);
+    $collectSession = !empty($config['collect_session'] ?? true);
     $retentionDays = (int)($config['retention_days'] ?? 0);
     $qualityMinDur = (int)($config['quality_min_duration'] ?? 10);
     $qualityMinInt = (int)($config['quality_min_interactions'] ?? 1);
@@ -34,6 +35,7 @@ function saveSettings(): string {
     $config['collect_page'] = !empty($_POST['collect_page']);
     $config['collect_timezone'] = !empty($_POST['collect_timezone']);
     $config['collect_os'] = !empty($_POST['collect_os']);
+    $config['collect_session'] = !empty($_POST['collect_session']);
     $config['quality_min_duration'] = max(0, (int)($_POST['quality_min_duration'] ?? 10));
     $config['quality_min_interactions'] = max(0, (int)($_POST['quality_min_interactions'] ?? 1));
     $config['retention_days'] = max(0, (int)($_POST['retention_days'] ?? 0));
@@ -141,7 +143,7 @@ function serveSettings() {
         ? 'otpauth://totp/' . rawurlencode('Butler') . ':' . rawurlencode('admin') . '?secret=' . rawurlencode($pendingSecret) . '&issuer=' . rawurlencode('Butler')
         : '';
 
-    require_once __DIR__ . '/common.php';
+    require_once __DIR__ . '/layout.php';
 
     header('Content-Type: text/html; charset=utf-8');
     
