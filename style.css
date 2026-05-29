@@ -105,7 +105,8 @@ hr{border:none;border-top:1px solid #2a2b33;margin:20px 0}
 .site-footer{margin-top:40px;padding:24px 0;font-size:.78rem;color:#4a4c54;text-align:center;border-top:1px solid #1a1b22}
 
 /* Auth */
-.auth-body{display:flex;justify-content:center;align-items:center;min-height:100vh}
+.auth-body{display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:100vh}
+.auth-body .site-footer{display:none}
 .auth-form{background:#18191f;padding:36px;border-radius:14px;border:1px solid #2a2b33;width:100%;max-width:380px}
 .auth-brand{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;background:linear-gradient(135deg,#c4b5fd,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
 .auth-form h2{margin-bottom:4px;font-size:1.15rem;font-weight:700;color:#c4b5fd}
