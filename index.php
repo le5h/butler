@@ -79,11 +79,11 @@ JS;
 }
 
 if (route('api')) {
-    require_once __DIR__ . '/lib/storage.php';
     require_once __DIR__ . '/lib/client.php';
     require_once __DIR__ . '/lib/ratelimit.php';
 
     $ip = getClientIp();
+
     if (!checkRateLimit($ip, $config['rate_limit'] ?? 120)) {
         header('Content-Type: application/json; charset=utf-8');
         http_response_code(429);
@@ -95,15 +95,28 @@ if (route('api')) {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type');
+
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         http_response_code(204);
         return;
     }
+
     $method = $_GET['api'] ?? '';
+
+    if (!in_array($method, ['new', 'update'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'invalid method']);
+        return;
+    }
+
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $input = array_intersect_key($input, array_flip(['lang', 'referrer', 'page', 'timezone', 'id', 'duration', 'interactions']));
+
+    require_once __DIR__ . '/lib/storage.php';
     $storage = createStorage($config);
+
     if ($method === 'new') {
+
         $id = generateVisitId($config, $ip);
         $data = $config['collect_os'] ? ['os' => detectOS($_SERVER['HTTP_USER_AGENT'] ?? '')] : [];
         if ($config['collect_lang']) $data['lang'] = $input['lang'] ?? '';
@@ -121,6 +134,7 @@ if (route('api')) {
         echo json_encode(['id' => $id]);
         return;
     }
+
     if ($method === 'update') {
         $id = $input['id'] ?? '';
         if (!$id) {
@@ -134,36 +148,36 @@ if (route('api')) {
         echo json_encode(['ok' => $storage->updateVisit($id, $data)]);
         return;
     }
-    http_response_code(400);
-    echo json_encode(['error' => 'unknown method']);
-    return;
 }
 
 if (route('settings')) {
-    require_once __DIR__ . '/lib/auth.php';
     require_once __DIR__ . '/lib/settings.php';
     serveSettings();
+
     return;
 }
 
 if (route('stats')) {
-    require_once __DIR__ . '/lib/storage.php';
-    require_once __DIR__ . '/lib/auth.php';
     require_once __DIR__ . '/lib/stats.php';
     serveStats();
+
     return;
 }
 
 if (route('test')) {
     require_once __DIR__ . '/lib/test.php';
     serveTest();
+
     return;
 }
 
 if($_SERVER['REQUEST_METHOD'] === 'GET') {
     header('Content-Type: text/html; charset=utf-8');
+
     require_once __DIR__ . '/lib/layout.php';
     renderHead('Intro');
+
     require __DIR__ . '/lib/view/landing.php';
+
     renderFooter();
 }

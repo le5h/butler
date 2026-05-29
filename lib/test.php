@@ -9,8 +9,9 @@ function serveTest() {
 
     header('Content-Type: text/html; charset=utf-8');
     
-    renderHead('Test');
-    renderTop('test');
+    renderHead('Test', 'test');
+
     renderTestPage();
-    renderFooter();
+
+    renderFooter(true);
 }

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/lib/auth.php';
+
 function writeConfig(string $file, array $cfg): bool {
     return file_put_contents($file, '<?php' . "\n\nreturn " . var_export($cfg, true) . ";\n", LOCK_EX) !== false;
 }
@@ -25,8 +27,10 @@ function renderSettingsForm(string $message, string $error, string $csrfToken, a
 
 function saveSettings(): string {
     global $config, $configFile;
+
     $storage = $_POST['storage'] ?? 'file';
     if (!preg_match('/^(file|sqlite)$/', $storage)) return 'Invalid storage type.';
+
     $config['storage'] = $storage;
     $config['store_subnet'] = !empty($_POST['store_subnet']);
     $config['geo_lookup'] = !empty($_POST['geo_lookup']);
@@ -40,28 +44,37 @@ function saveSettings(): string {
     $config['quality_min_interactions'] = max(0, (int)($_POST['quality_min_interactions'] ?? 1));
     $config['retention_days'] = max(0, (int)($_POST['retention_days'] ?? 0));
     $config['export_limit'] = max(100, (int)($_POST['export_limit'] ?? 10000));
+
     if (!writeConfig($configFile, $config)) return 'Failed to write config file. Check permissions.';
+
     $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
     $_SESSION['_settings_message'] = 'Configuration saved.';
+
     return '';
 }
 
 function savePassword(): string {
     global $config, $configFile;
+
     if ($config['password'] !== '' && !password_verify($_POST['old_password'] ?? '', $config['password'])) {
         return 'Current password is incorrect.';
     }
+
     $newPwd = $_POST['new_password'] ?? '';
     if ($newPwd === '') return 'New password cannot be empty.';
+
     $config['password'] = password_hash($newPwd, PASSWORD_BCRYPT);
     if (!writeConfig($configFile, $config)) return 'Failed to write config file. Check permissions.';
+
     $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
     $_SESSION['_settings_message'] = 'Password updated.';
+
     return '';
 }
 
 function serveSettings() {
     global $config, $configFile;
+
     if (!empty($config['password']) && !checkAuth('settings')) return;
     if (isset($_POST['pwd']) || isset($_POST['totp'])) { header('Location: ?settings'); return; }
 
@@ -126,6 +139,7 @@ function serveSettings() {
         unset($_SESSION['_settings_message']);
         $csrfToken = $_SESSION['settings_csrf'];
     }
+
     if ($error === '' && !empty($_SESSION['_settings_error'])) {
         $error = $_SESSION['_settings_error'];
         unset($_SESSION['_settings_error']);
@@ -147,8 +161,9 @@ function serveSettings() {
 
     header('Content-Type: text/html; charset=utf-8');
     
-    renderHead('Settings');
-    renderTop('settings');
+    renderHead('Settings', 'settings');
+
     renderSettingsForm($message, $error, $csrfToken, $config, $totpActive, $totpCanSetup, $pendingSecret, $totpSecret, $otpauth);
-    renderFooter();
+
+    renderFooter(true);
 }

@@ -7,4 +7,14 @@
 <title><?=htmlspecialchars($title)?> - Butler</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body<?=$bodyClass ? ' class="' . $bodyClass . '"' : ''?>>
+<?php if ($active !== null): ?>
+<div class="container">
+<div class="top">
+<div class="top-brand">
+<h1>Butler</h1>
+<span class="top-subtitle">your privacy-first analytics</span>
+</div>
+<?=$navLinks?>
+</div>
+<?php endif; ?>

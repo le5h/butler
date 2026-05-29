@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/storage.php';
+require_once __DIR__ . '/auth.php';
+
 function fillChartGaps(array $buckets, string $range, ?string $from = null): array {
     if ($range === 'day') {
         $labels = $counts = $durations = [];
@@ -145,9 +148,11 @@ function serveStats() {
 
     header('Content-Type: text/html; charset=utf-8');
     
-    renderHead("Stats - $range");
-    renderChartJs();
-    renderTop('stats');
+    renderHead("Stats - $range", 'stats');
+
+    require __DIR__ . '/view/chartjs.php';
+
     renderDashboard($report, $range, $stats, $chartData, $visits, $page, $totalPages, $queryBase, $from, $defFromWeek, $defFromMonth);
-    renderFooter();
+
+    renderFooter(true);
 }

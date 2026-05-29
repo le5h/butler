@@ -1,7 +1,10 @@
 <?php
 
 function renderLoginForm(bool $needsTotp, string $page): void {
+    require_once __DIR__ . '/layout.php';
+    renderHead('Auth required', null, 'auth-body');
     require __DIR__ . '/view/login.php';
+    renderFooter(false);
 }
 
 function checkAuth(string $page = 'view'): bool {
@@ -45,9 +48,12 @@ function checkAuth(string $page = 'view'): bool {
     }
 
     header('Content-Type: text/html; charset=utf-8');
+
     http_response_code(401);
+
     $needsTotp = !empty($_SESSION['auth_ok']) && !empty($config['auth_secret']);
     renderLoginForm($needsTotp, $page);
+
     return false;
 }
 

@@ -1,13 +1,4 @@
 <?php if (!defined('BUTLER_APP')) exit; ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Auth required - Butler</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body class="auth-body">
 <form method="post" class="auth-form">
 <div class="auth-brand">Butler</div>
 <?php if ($needsTotp): ?>
@@ -22,5 +13,3 @@
 <?php endif; ?>
 <button type="submit" class="btn">Sign in</button>
 </form>
-</body>
-</html>
