@@ -138,7 +138,14 @@ class FileStorage {
             if ($line === '') continue;
             $rec = json_decode($line, true);
             if ($rec && !empty($rec['id'])) {
-                $records[$rec['id']] = array_merge($records[$rec['id']] ?? [], $rec);
+                $id = $rec['id'];
+                if (isset($records[$id])) {
+                    foreach ($rec as $k => $v) {
+                        $records[$id][$k] = $v;
+                    }
+                } else {
+                    $records[$id] = $rec;
+                }
             }
         }
         return array_values($records);
@@ -309,6 +316,7 @@ class FileStorage {
             foreach ($buckets as $h => &$b) {
                 $b['avg'] = $b['count'] > 0 ? round($sums[$h] / $b['count'], 1) : 0;
             }
+            unset($b);
             return fillChartGaps($buckets, $range, $from);
         }
         $buckets = [];

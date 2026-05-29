@@ -1,5 +1,9 @@
 <?php
 
+function writeConfig(string $file, array $cfg): bool {
+    return file_put_contents($file, '<?php' . "\n\nreturn " . var_export($cfg, true) . ";\n", LOCK_EX) !== false;
+}
+
 function renderSettingsForm(string $message, string $error, string $csrfToken, array $config, bool $totpActive, bool $totpCanSetup, string $pendingSecret, string $totpSecret, string $otpauth): void {
     $currentStorage = $config['storage'] ?? 'file';
     $storeSubnet = !empty($config['store_subnet']);
@@ -34,8 +38,7 @@ function saveSettings(): string {
     $config['quality_min_interactions'] = max(0, (int)($_POST['quality_min_interactions'] ?? 1));
     $config['retention_days'] = max(0, (int)($_POST['retention_days'] ?? 0));
     $config['export_limit'] = max(100, (int)($_POST['export_limit'] ?? 10000));
-    $written = file_put_contents($configFile, '<?php' . "\n\nreturn " . var_export($config, true) . ";\n", LOCK_EX);
-    if ($written === false) return 'Failed to write config file. Check permissions.';
+    if (!writeConfig($configFile, $config)) return 'Failed to write config file. Check permissions.';
     $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
     $_SESSION['_settings_message'] = 'Configuration saved.';
     return '';
@@ -49,8 +52,7 @@ function savePassword(): string {
     $newPwd = $_POST['new_password'] ?? '';
     if ($newPwd === '') return 'New password cannot be empty.';
     $config['password'] = password_hash($newPwd, PASSWORD_BCRYPT);
-    $written = file_put_contents($configFile, '<?php' . "\n\nreturn " . var_export($config, true) . ";\n", LOCK_EX);
-    if ($written === false) return 'Failed to write config file. Check permissions.';
+    if (!writeConfig($configFile, $config)) return 'Failed to write config file. Check permissions.';
     $_SESSION['settings_csrf'] = bin2hex(random_bytes(32));
     $_SESSION['_settings_message'] = 'Password updated.';
     return '';
@@ -90,12 +92,7 @@ function serveSettings() {
                 $error = 'Invalid code.';
             } else {
                 $config['auth_secret'] = $pendingSecret;
-                $written = file_put_contents(
-                    $configFile,
-                    '<?php' . "\n\nreturn " . var_export($config, true) . ";\n",
-                    LOCK_EX
-                );
-                if ($written === false) {
+                if (!writeConfig($configFile, $config)) {
                     $error = 'Failed to write config file. Check permissions.';
                 } else {
                     $message = 'Two-factor authentication is now active.';
@@ -107,12 +104,7 @@ function serveSettings() {
             }
         } elseif (isset($_POST['totp_disable'])) {
             $config['auth_secret'] = '';
-            $written = file_put_contents(
-                $configFile,
-                '<?php' . "\n\nreturn " . var_export($config, true) . ";\n",
-                LOCK_EX
-            );
-            if ($written === false) {
+            if (!writeConfig($configFile, $config)) {
                 $error = 'Failed to write config file. Check permissions.';
             } else {
                 $message = 'Two-factor authentication disabled.';

@@ -110,6 +110,7 @@ if (route('api')) {
     }
     $method = $_GET['api'] ?? '';
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input = array_intersect_key($input, array_flip(['lang', 'referrer', 'page', 'timezone', 'id', 'duration', 'interactions']));
     if ($method === 'new') {
         if (session_status() === PHP_SESSION_NONE) @session_start();
         $storage = createStorage($config);
@@ -120,7 +121,7 @@ if (route('api')) {
             $raw = $input['page'] ?? '';
             $raw = explode('?', $raw)[0];
             $raw = explode('#', $raw)[0];
-            $data['page'] = substr(strip_tags($raw), 0, 500);
+            $data['page'] = substr(parse_url($raw, PHP_URL_PATH) ?: '/', 0, 500);
         }
         if ($config['collect_timezone']) $data['timezone'] = $input['timezone'] ?? '';
         if ($config['store_subnet']) $data['ip'] = subnetAddress($ip);
