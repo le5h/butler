@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/lib/auth.php';
+require_once __DIR__ . '/auth.php';
 
 function writeConfig(string $file, array $cfg): bool {
     return file_put_contents($file, '<?php' . "\n\nreturn " . var_export($cfg, true) . ";\n", LOCK_EX) !== false;
