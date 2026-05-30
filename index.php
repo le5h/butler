@@ -45,10 +45,11 @@ if (route('logout')) {
 
 if (route('js')) {
     $self = $_SERVER['SCRIPT_NAME'];
+    
     $configToCode = [
+        'collect_page' => "page:location.pathname",
         'collect_referrer' => "referrer:document.referrer",
         'collect_lang' => "lang:navigator.language",
-        'collect_page' => "page:location.pathname",
         'collect_timezone' => "timezone:Intl.DateTimeFormat().resolvedOptions().timeZone",
     ];
     $entries = [];
@@ -56,8 +57,10 @@ if (route('js')) {
         if (!empty($config[$key])) $entries[] = $code;
     }
     $dataObj = '{' . implode(',', $entries) . '}';
+
     header('Content-Type: application/javascript; charset=utf-8');
     header('Access-Control-Allow-Origin: *');
+
     echo <<<JS
 window.__butler={id:null,ints:0};
 (function(){
@@ -75,6 +78,7 @@ document.addEventListener('visibilitychange',function(){document.hidden?send():s
 window.addEventListener('pagehide',send,{passive:true});
 })();
 JS;
+
     return;
 }
 
